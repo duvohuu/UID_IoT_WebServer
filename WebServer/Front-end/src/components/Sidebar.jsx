@@ -14,7 +14,7 @@ import SettingIcon from '@mui/icons-material/Settings';
 import { Link, useLocation } from 'react-router-dom';
 
 const expandedWidth = 200;
-const collapsedWidth = 70;
+const collapsedWidth = 75;
 
 const menuItems = [
     { label: 'Status', path: '/status/', icon: <StatusIcon /> },
@@ -56,7 +56,7 @@ const Sidebar = ({ open }) => {
                             to={item.path}
                             selected={selected}
                             sx={(theme) => ({
-                                minHeight: 48,
+                                minHeight: 50,
                                 px: 2,
                                 py: 1,
                                 justifyContent: open ? 'initial' : 'center',
@@ -74,7 +74,7 @@ const Sidebar = ({ open }) => {
                         >
                             <ListItemIcon
                                 sx={(theme) => ({
-                                    minWidth: 0,
+                                    minWidth: 40, 
                                     mr: open ? 2 : 'auto',
                                     justifyContent: 'center',
                                     color: theme.palette.text.primary,

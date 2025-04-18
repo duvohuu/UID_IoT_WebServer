@@ -6,12 +6,12 @@ export const getTheme = (mode = 'light') =>
         palette: {
             mode,
             background: {
-                default: mode === 'light' ? '#f5f5f5' : '#0a0a0a',   // main content
-                sidebar: mode === 'light' ? '#f0f0f0' : '#111418',   // sidebar dark
-                header:  mode === 'light' ? '#ffffff' : '#12161b',   // header tách biệt
+                default: mode === 'light' ? '#f5f5f5' : '#0a0a0a',   
+                sidebar: mode === 'light' ? '#f0f0f0' : '#111418',   
+                header:  mode === 'light' ? '#ffffff' : '#12161b',   
             },
             text: {
-                primary: mode === 'light' ? '#1e1e1e' : '#c9d1d9',   // GitHub text
+                primary: mode === 'light' ? '#1e1e1e' : '#c9d1d9',   
                 secondary: mode === 'light' ? '#555' : '#8b949e',
             },
             action: {
@@ -21,5 +21,14 @@ export const getTheme = (mode = 'light') =>
         },
         typography: {
             fontFamily: `'Inter', sans-serif`,
+        },
+        components: {
+            MuiListItemText: {
+                styleOverrides: {
+                    primary: {
+                        fontWeight: 'bold', 
+                    },
+                },
+            },
         },
     });

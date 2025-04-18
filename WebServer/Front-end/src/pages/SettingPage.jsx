@@ -8,13 +8,13 @@ const SettingPage = ({ mode, setMode }) => {
 
     return (
         <div>
-            <Typography variant="h4" gutterBottom>
+            <Typography variant="h4" gutterBottom fontWeight="bold">
                 Settings
             </Typography>
 
             <FormControlLabel
                 control={<Switch checked={mode === 'dark'} onChange={handleToggle} />}
-                label={mode === 'dark' ? 'Chế độ sáng' : 'Chế độ tối'}
+                label={mode === 'dark' ? 'LighMode' : 'DarkMode'}
             />
         </div>
     );

@@ -54,25 +54,24 @@ const Header = ({ onToggleSidebar }) => {
                 boxShadow: 'none',
             }}
         >
-            <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', pl: `${open ? 1 : 0}px` }}>
                 {/* Logo + Nút Menu */}
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <IconButton
-                        edge="start"
-                        color="inherit"
-                        aria-label="menu"
-                        onClick={onToggleSidebar}
-                        sx={{ mr: 2 }}
-                    >
-                        <MenuIcon />
-                    </IconButton>
+                <IconButton
+                    color="inherit"
+                    aria-label="menu"
+                    onClick={onToggleSidebar}
+                    sx={{mr: 2, p: 0 }} 
+                >
+                    <MenuIcon />
+                </IconButton>
 
                     <img
                         src="/logo.png"
                         alt="logo"
-                        style={{ width: 60, height: 60, marginRight: 8 }}
+                        style={{ width: 60, height: 60, marginRight: 10}}
                     />
-                    <Typography variant="h6" noWrap>
+                    <Typography variant="h6" noWrap fontWeight={'bold'}>
                         UID LAB
                     </Typography>
                 </Box>

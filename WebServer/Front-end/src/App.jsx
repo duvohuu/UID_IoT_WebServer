@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Box, Toolbar, CssBaseline, ThemeProvider } from '@mui/material';
 
-import { getTheme } from './theme'; // ✅ đã sửa trong theme.js
+import { getTheme } from './theme'; 
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import StatusPage from './pages/StatusPage';
@@ -11,7 +11,7 @@ import SettingPage from './pages/SettingPage';
 
 const App = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [mode, setMode] = useState('light'); // ✅ light / dark
+    const [mode, setMode] = useState('light'); 
 
     return (
         <ThemeProvider theme={getTheme(mode)}>
