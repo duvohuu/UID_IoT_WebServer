@@ -1,0 +1,97 @@
+\usepackage{vntex} % Tiếng Việt
+\usepackage{graphicx} % Chèn hình ảnh
+\usepackage{fancyhdr} % Gói hỗ trợ tạo header và footer fancy
+\usepackage{changepage} % Thay đổi lề
+
+% Chèn code
+\usepackage{listings} % Thêm gói listings để chèn code
+\usepackage{xcolor} % Màu cho code
+% Định nghĩa màu sắc
+\definecolor{codeblue}{RGB}{0, 0, 255}
+\definecolor{codered}{RGB}{255, 0, 0}
+\definecolor{codegray}{RGB}{128, 128, 128}
+\definecolor{codeblack}{RGB}{0, 0, 0}
+\definecolor{lightgray}{RGB}{245, 245, 245}
+\definecolor{codecyan}{RGB}{0, 255, 255}
+
+\lstdefinelanguage{javascript}{
+    keywords={import, from, const, let, var, function, return, if, else, for, while, do, switch, case, break, continue, new, try, catch, throw, typeof, instanceof, void, with, async, await},
+    keywordstyle=\color{codeblue}\bfseries,
+    ndkeywords={class, export, default, extends, static, get, set},
+    ndkeywordstyle=\color{codeblue}\bfseries,
+    identifierstyle=\color{codeblack},
+    sensitive=true,
+    comment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    commentstyle=\color{codegray}\itshape,
+    stringstyle=\color{codered},
+    morestring=[b]",
+    morestring=[b]'
+}
+
+% Cấu hình listings với màu sắc
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{codeblue}\bfseries,
+    stringstyle=\color{codered},
+    commentstyle=\color{codegray}\itshape,
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    stepnumber=1,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    frame=single,
+    framerule=1pt,
+    rulecolor=\color{codecyan},
+    backgroundcolor=\color{lightgray},
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=2,
+    captionpos=b,
+    language=javascript
+}
+
+% Footnote and References
+\usepackage[style=numeric,backend=biber]{biblatex} % Sử dụng gói biblatex
+\usepackage{capt-of} %  Footnote trong caption
+\usepackage[perpage]{footmisc} % Đánh số lại chú thích mỗi trang
+\usepackage[toc,page]{appendix}
+
+% Thiết lập bảng
+\usepackage{array} % Gói hỗ trợ các bảng phức tạp
+\usepackage{tabularx}
+\usepackage{longtable} % Tạo bảng qua nhiều trang
+\usepackage{cellspace}
+\usepackage{diagbox} % Gói hỗ trợ tạo các ô chéo trong bảng
+\usepackage{multirow}
+
+% Thiết lập công thức toán học
+\usepackage{amsmath} % Gói hỗ trợ các công thức toán học
+\usepackage{amsfonts} % Gói hỗ trợ các ký hiệu toán học
+\usepackage{amssymb} % Gói hỗ trợ các ký hiệu toán học
+\usepackage{graphicx} % Gói hỗ trợ chèn hình ảnh
+\usepackage{bm} % Chữ in đậm trong công thức toán 
+
+% Thiết lập khác
+\usepackage{tikz}
+\usepackage{color}
+\usepackage{subcaption}
+\usepackage{framed}
+\usepackage{float} % Để chèn hình ảnh vào đúng vị trí
+\usepackage{fancyvrb} % Đưa dữ liệu dạng nguyên thủy vào
+
+
+% Thiết lập kích thước
+\usepackage{geometry}
+\geometry{
+    left=3cm,
+    right=2cm,
+    top=2.5cm,
+    bottom=2.5cm,
+}
+\usepackage{hyperref} %Chèn link
+\hypersetup{urlcolor=black,linkcolor=black,citecolor=black,colorlinks=true} % Màu cho các đường nét
+\everymath{\color{black}}
+\setlength{\headheight}{40pt}
+\pagestyle{fancy}

@@ -1,0 +1,1742 @@
+\chapter{FRONT END}
+    \section{Giới thiệu}
+        \begin{itemize}
+            \item Front-end là phần giao diện người dùng của hệ thống, cho phép người dùng tương tác với hệ thống thông qua các thao tác trên giao diện.
+            \item Front-end được xây dựng bằng Vite, ReactJS, Material UI, Axios và sử dụng WebSocket để nhận dữ liệu từ WebServer. 
+            \item Front-end sẽ gửi các yêu cầu đến WebServer để lấy dữ liệu và hiển thị lên giao diện.
+        \end{itemize}
+    \section{Cài đặt}
+        \begin{itemize}
+            \item Cài đặt NodeJS và NPM trên máy tính của bạn. Bạn có thể tải NodeJS tại địa chỉ: \url{https://nodejs.org/en/download/}
+            \item Cài đặt Vite bằng lệnh sau:
+                \begin{lstlisting}
+    npm create vite@latest
+                \end{lstlisting}
+                Chọn Framework là React và variant là Javascript.
+            \item Chạy ứng dụng bằng lệnh sau:
+                \begin{lstlisting}
+    npm run dev
+                \end{lstlisting}
+            \item Mở trình duyệt và truy cập vào địa chỉ: \url{http://localhost:5173/}
+        \end{itemize}
+    \section{Bố cục giao diện}
+        Giao diện có dạng dashboard được phân bố như hình:
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.8\textwidth]{pictures/dashboard.png}
+            \caption{Giao diện dashboard}
+            \label{fig:dashboard}
+        \end{figure}
+    \section{Cấu trúc thư mục}
+        \begin{itemize}
+            \item \textbf{node\_modules}: Thư mục chứa các thư viện được cài đặt bằng NPM.
+            \item \textbf{public}: Thư mục chứa các tệp tĩnh như hình ảnh, biểu tượng, v.v.
+            \item \textbf{src}: Thư mục chứa mã nguồn của ứng dụng.
+                \begin{itemize}
+                    \item \textbf{api}: Thư mục chứa các tệp API của ứng dụng.
+                    \item \textbf{assets}: Thư mục chứa các tệp tài nguyên như hình ảnh, biểu tượng, v.v.
+                    \item \textbf{components}: Thư mục chứa các thành phần giao diện của ứng dụng: Header.jsx, Footer.jsx, Sidebar.jsx.
+                    \item \textbf{hooks}: Thư mục chứa các hook tùy chỉnh của ứng dụng, hiển thị ở phần Main view.
+                    \item \textbf{pages}: Thư mục chứa các trang của ứng dụng.
+                    \item \textbf{router}: Thư mục chứa các tệp định tuyến của ứng dụng.
+                    \item \textbf{services}: Thư mục chứa các tệp dịch vụ của ứng dụng.
+                    \item \textbf{styles}: Thư mục chứa các tệp CSS của ứng dụng.
+                    \item \textbf{App.jsx}: Tệp chính của ứng dụng.
+                    \item \textbf{main.jsx}: Tệp khởi động ứng dụng.
+                    \item \textbf{theme.js}: Tệp chứa định dạng nền cho ứng dụng.
+                \end{itemize}
+        \end{itemize}
+    \section{Cài đặt thư viện}
+        \begin{itemize}
+            \item Thư viện Material UI: Thư viện giao diện người dùng cho React.
+            \begin{lstlisting}
+    npm install @mui/material
+            \end{lstlisting} 
+            \item Thư viện Axios: Thư viện gửi yêu cầu HTTP.
+            \begin{lstlisting}
+    npm install axios
+            \end{lstlisting} 
+            \item Thư viện React Router: Thư viện định tuyến cho React.
+            \begin{lstlisting}
+    npm install react-router-dom
+            \end{lstlisting}
+            \item Thư viện Socket Clint: Thư viện WebSocket cho Front
+            \begin{lstlisting}
+    npm install socket.io-client
+            \end{lstlisting}
+            \item Các thư viện khác cài đặt trong quá trình phát triển.
+        \end{itemize}
+    \section{COMPONENTS}
+        \subsection{Header}
+            \hspace*{0.6cm}Header là thành phần hiển thị tiêu đề của ứng dụng, thanh tìm kiếm, thông tin người dùng.
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=1\textwidth]{pictures/Header_1.png}
+                \caption{Giao diện Header trước khi Login}
+                \label{fig:header}
+            \end{figure}
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=1\textwidth]{pictures/Header_2.png}
+                \caption{Giao diện Header sau khi Login}
+                \label{fig:header}
+            \end{figure}
+            \subsubsection{Kết nối Socket}
+                \hspace*{0.6cm}Socket.IO được sử dụng để giao tiếp thời gian thực với server:
+                \begin{lstlisting}
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const socket = io(API_URL, {
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        transports: ["websocket", "polling"],
+        auth: { token: document.cookie.split("; ").find(row => row.startsWith("authToken="))?.split("=")[1] || null }
+    });
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{API\_URL}: Lấy từ biến môi trường hoặc mặc định là \texttt{http://localhost:5000}.
+                    \item \texttt{socket}: Kết nối với server, ưu tiên WebSocket, dùng polling nếu thất bại. Có cơ chế tự động thử lại 5 lần, cách nhau 1 giây. Token xác thực được lấy từ cookie.
+                \end{itemize}
+
+            \subsubsection{Thành Phần Giao Diện Tùy Chỉnh}
+                \hspace*{0.6cm}Thanh tìm kiếm được định kiểu bằng \texttt{styled}:
+                \begin{lstlisting}
+    const Search = styled("div")(({ theme }) => ({
+        position: "relative",
+        borderRadius: theme.shape.borderRadius,
+        backgroundColor: alpha(theme.palette.text.primary, 0.05),
+        "&:hover": {
+        backgroundColor: alpha(theme.palette.text.primary, 0.1),
+        },
+        marginLeft: theme.spacing(2),
+        width: "100%",
+        maxWidth: 300,
+    }));
+    const SearchIconWrapper = styled("div")(({ theme }) => ({
+        padding: theme.spacing(0, 2),
+        height: "100%",
+        position: "absolute",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: theme.palette.text.secondary,
+    }));
+    const StyledInputBase = styled(InputBase)(({ theme }) => ({
+        color: theme.palette.text.primary,
+        paddingLeft: `calc(1em + ${theme.spacing(4)})`,
+        width: "100%",
+    }));
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{Search}: Container thanh tìm kiếm, nền mờ (5\% độ mờ), hover đổi thành 10\%, rộng tối đa 300px.
+                    \item \texttt{SearchIconWrapper}: Định vị icon tìm kiếm bên trái, căn giữa.
+                    \item \texttt{StyledInputBase}: Ô nhập liệu có màu chữ theo theme, thêm padding để tránh che icon.
+                \end{itemize}
+
+            \subsubsection{Component Header}
+                \hspace*{0.6cm}Component nhận các props:
+                \begin{lstlisting}
+    const Header = ({ onToggleSidebar, user, setUser }) => {}
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{onToggleSidebar}: Hàm mở/đóng sidebar.
+                    \item \texttt{user}: Thông tin người dùng (null nếu chưa đăng nhập).
+                    \item \texttt{setUser}: Cập nhật trạng thái người dùng.
+                \end{itemize}
+
+            \subsubsection{Trạng Thái và Hook}
+                \begin{lstlisting}
+    const theme = useTheme();
+    const [anchorEl, setAnchorEl] = useState(null);
+    const { email, setEmail, password, setPassword, openLogin, setOpenLogin, handleLogin, handleLogout } = useAuth(setUser, socket);
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{theme}: Lấy theme để tạo kiểu.
+                    \item \texttt{anchorEl}: Lưu vị trí mở \texttt{AvatarMenu}.
+                    \item \texttt{useAuth}: Cung cấp trạng thái (email, password, openLogin) và hàm xử lý đăng nhập/đăng xuất.
+                \end{itemize}
+
+            \subsubsection{Xử Lý Sự Kiện}
+                \begin{lstlisting}
+    const handleAvatarClick = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+    const handleMenuClose = () => {
+        setAnchorEl(null);
+    };
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{handleAvatarClick}: Mở \texttt{AvatarMenu} khi click avatar.
+                    \item \texttt{handleMenuClose}: Đóng menu.
+                \end{itemize}
+
+            \subsubsection{URL Ảnh Đại Diện}
+                \begin{lstlisting}
+    const avatarSrc = user?.avatar ? `${API_URL}${user.avatar}` : undefined;
+    console.log("Avatar URL in Header:", avatarSrc);
+                \end{lstlisting}
+                Tạo URL ảnh đại diện bằng cách nối \texttt{API\_URL} với đường dẫn avatar, in ra để debug.
+
+            \subsubsection{Cấu Trúc JSX}
+                \hspace*{0.6cm}Thanh điều hướng chính:
+                \begin{lstlisting}
+    <AppBar
+        position="fixed"
+        sx={{
+            backgroundColor: theme.palette.background.header,
+            color: theme.palette.text.primary,
+            zIndex: theme.zIndex.drawer + 1,
+            boxShadow: "none",
+        }}
+    >
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{AppBar}: Thanh cố định, màu nền và chữ theo theme, z-index cao, không có bóng.
+                \end{itemize}
+
+                Phần trái của \texttt{Toolbar}:
+                \begin{lstlisting}
+        <Toolbar sx={{ display: "flex", justifyContent: "space-between", pl: "0px" }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+                <IconButton color="inherit" onClick={onToggleSidebar} sx={{ mr: 2, p: 0 }}>
+                    <MenuIcon />
+                </button>
+                <img src="/logo.png" alt="logo" style={{ width: 60, height: 60, marginRight: 10 }} />
+                <Typography variant="h6" fontWeight="bold">
+                    UID LAB
+                </Typography>
+            </Box>
+                \end{lstlisting}
+                \begin{itemize}
+                    \item Nút \texttt{MenuIcon} mở/đóng sidebar.
+                    \item Logo (60x60px) và tiêu đề "UID LAB" kiểu h6, in đậm.
+                \end{itemize}
+
+                Phần phải (thanh tìm kiếm và xác thực):
+                \begin{lstlisting}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Search>
+                    <SearchIconWrapper>
+                        <SearchIcon />
+                    </SearchIconWrapper>
+                    <StyledInputBase
+                        placeholder="Search..."
+                        inputProps={{ "aria-label": "search" }}
+                    />
+                </Search>
+                {!user ? (
+                    <Typography
+                        color="inherit"
+                        onClick={() => setOpenLogin(true)}
+                        sx={{ cursor: "pointer" }}
+                    >
+                        Dang Nhap
+                    </Typography>
+                ) : (
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Avatar
+                            src={avatarSrc}
+                            alt={user.username}
+                            onClick={handleAvatarClick}
+                            sx={{ cursor: "pointer", width: 40, height: 40 }}
+                        />
+                        <AvatarMenu
+                            anchorEl={anchorEl}
+                            onClose={handleMenuClose}
+                            user={user}
+                            setUser={setUser}
+                            onLogout={handleLogout}
+                        />
+                    </Box>
+                )}
+            </Box>
+                \end{lstlisting}
+                \begin{itemize}
+                    \item Thanh tìm kiếm: Ô nhập liệu với icon và placeholder.
+                    \item Xác thực: Hiển thị link "Đăng nhập" nếu chưa đăng nhập, hoặc avatar và \texttt{AvatarMenu} nếu đã đăng nhập.
+                \end{itemize}
+
+                Modal đăng nhập:
+                \begin{lstlisting}
+            <LoginDialog
+                open={openLogin}
+                onClose={() => setOpenLogin(false)}
+                email={email}
+                setEmail={setEmail}
+                password={password}
+                setPassword={setPassword}
+                handleLogin={handleLogin}
+            />
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{LoginDialog}: Modal đăng nhập, hiển thị khi \texttt{openLogin} là true.
+                \end{itemize}
+            \subsubsection{Chức năng chính}
+                \begin{itemize}
+                    \item \textbf{Mở/đóng Sidebar}: Click \texttt{MenuIcon} gọi \texttt{onToggleSidebar}.
+                    \item \textbf{Thanh Tìm Kiếm}: Ô nhập liệu với icon và kiểu dáng tùy chỉnh.
+                    \item \textbf{Xác Thực Người Dùng}:
+                    \begin{itemize}
+                        \item Chưa đăng nhập: Link "Đăng nhập" mở \texttt{LoginDialog}.
+                        \item Đã đăng nhập: Avatar mở \texttt{AvatarMenu} với tùy chọn hồ sơ/đăng xuất.
+                    \end{itemize}
+                    \item \textbf{Giao Tiếp Thời Gian Thực}: Socket.IO duy trì kết nối với server, hỗ trợ xác thực qua token.
+                \end{itemize}
+        \subsection{LoginDialog}
+            \hspace*{0.6cm}Là một hộp thoại (modal), sử dụng Material-UI để tạo giao diện đăng nhập người dùng. Nó hiển thị một biểu mẫu với các trường nhập email, mật khẩu và nút đăng nhập.
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.5\textwidth]{pictures/LoginDialog.png}
+                \caption{Giao diện LoginDialog}
+                \label{fig:login}
+            \end{figure}
+            \subsubsection{Import}
+                \hspace*{0.6cm}Các thư viện và thành phần Material-UI được nhập để xây dựng giao diện:
+                \begin{lstlisting}
+    import React from 'react';
+    import { Dialog, Box, Typography, TextField, Button } from '@mui/material';
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{React}: Thư viện chính để xây dựng component.
+                    \item \texttt{Material-UI}: Cung cấp các thành phần:
+                    \begin{itemize}
+                        \item \texttt{Dialog}: Hộp thoại hiển thị biểu mẫu đăng nhập.
+                        \item \texttt{Box}: Container để sắp xếp bố cục.
+                        \item \texttt{Typography}: Hiển thị tiêu đề.
+                        \item \texttt{TextField}: Trường nhập liệu cho email và mật khẩu.
+                        \item \texttt{Button}: Nút thực hiện hành động đăng nhập.
+                    \end{itemize}
+                \end{itemize}
+
+            \subsubsection{Component LoginDialog}
+                \hspace*{0.6cm}Component nhận các props để quản lý trạng thái và xử lý đăng nhập:
+                \begin{lstlisting}
+    const LoginDialog = ({ open, onClose, email, setEmail, password, setPassword, handleLogin }) => {
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{open}: Trạng thái hiển thị của hộp thoại (true/false).
+                    \item \texttt{onClose}: Hàm đóng hộp thoại.
+                    \item \texttt{email}, \texttt{setEmail}: Giá trị và hàm cập nhật email.
+                    \item \texttt{password}, \texttt{setPassword}: Giá trị và hàm cập nhật mật khẩu.
+                    \item \texttt{handleLogin}: Hàm xử lý logic đăng nhập.
+                \end{itemize}
+
+            \subsubsection{Cấu Trúc JSX}
+                \hspace*{0.6cm}Giao diện của \texttt{LoginDialog} được định nghĩa trong JSX:
+                \begin{lstlisting}
+    return (
+        <Dialog open={open} onClose={onClose}>
+            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2, width: 300 }}>
+                <Typography variant="h6" fontWeight="bold">Dang nhap</Typography>
+                <TextField
+                    label="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    fullWidth
+                />
+                <TextField
+                    label="Mat khau"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    fullWidth
+                />
+                <Button variant="contained" onClick={handleLogin}>
+                    Dang nhap
+                </Button>
+            </Box>
+        </Dialog>
+    );
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{Dialog}: Hộp thoại được điều khiển bởi \texttt{open} và \texttt{onClose}.
+                    \item \texttt{Box}: Container với:
+                    \begin{itemize}
+                        \item Padding 3 đơn vị (\texttt{p: 3}).
+                        \item Bố cục cột dọc (\texttt{flexDirection: 'column'}).
+                        \item Khoảng cách giữa các phần tử (\texttt{gap: 2}).
+                        \item Chiều rộng cố định 300px (\texttt{width: 300}).
+                    \end{itemize}
+                    \item \texttt{Typography}: Tiêu đề "Đăng nhập" với kiểu \texttt{h6}, in đậm.
+                    \item \texttt{TextField} (Email): Trường nhập liệu email, liên kết với \texttt{email} và \texttt{setEmail}, chiếm toàn bộ chiều rộng (\texttt{fullWidth}).
+                    \item \texttt{TextField} (Mật khẩu): Trường nhập liệu mật khẩu, loại \texttt{password} để ẩn ký tự, liên kết với \texttt{password} và \texttt{setPassword}.
+                    \item \texttt{Button}: Nút "Đăng nhập" với kiểu \texttt{contained} (nút nổi), gọi \texttt{handleLogin} khi click.
+                \end{itemize}
+
+            \subsubsection{Export}
+                \hspace*{0.6cm}Component được xuất để sử dụng trong các phần khác của ứng dụng:
+                \begin{lstlisting}
+    export default LoginDialog;
+                \end{lstlisting}
+            \subsubsection{Chức Năng Chính}
+                \begin{itemize}
+                    \item \textbf{Hiển thị Hộp Thoại Đăng Nhập}: Hộp thoại xuất hiện khi \texttt{open} là \texttt{true}, đóng khi gọi \texttt{onClose}.
+                    \item \textbf{Nhập Thông Tin Đăng Nhập}: Người dùng nhập email và mật khẩu vào các trường \texttt{TextField}, dữ liệu được cập nhật qua \texttt{setEmail} và \texttt{setPassword}.
+                    \item \textbf{Xử Lý Đăng Nhập}: Nút "Đăng nhập" gọi \texttt{handleLogin} để thực hiện xác thực (logic cụ thể phụ thuộc vào hàm này).
+                    \item \textbf{Giao Diện}: Sử dụng Material-UI để tạo bố cục rõ ràng, trực quan, với các trường nhập liệu và nút được sắp xếp gọn gàng.
+                \end{itemize}
+        \subsection{AvatarMenu}
+            \hspace*{0.6cm}Là một menu sử dụng Material-UI để hiển thị các tùy chọn cho người dùng đã đăng nhập, bao gồm cập nhật avatar, đổi mật khẩu và đăng xuất. Nó tích hợp với API thông qua \texttt{axios} và sử dụng \texttt{SnackbarContext} để hiển thị thông báo.
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.5\textwidth]{pictures/AvatarMenu.png}
+                \caption{Giao diện AvatarMenu}
+                \label{fig:avatar}
+            \end{figure}
+            \subsubsection{Import}
+                \hspace*{0.6cm}Các thư viện và thành phần được nhập để xây dựng \texttt{AvatarMenu}:
+                \begin{lstlisting}
+    import React, { useState } from "react";
+    import {
+        Avatar, Menu, MenuItem, Divider, Box, Typography, useTheme,
+    } from "@mui/material";
+    import axios from "axios";
+    import ChangePasswordDialog from "./ChangePasswordDialog";
+    import { useSnackbar } from '../context/SnackbarContext';
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{React}, \texttt{useState}: Quản lý trạng thái cục bộ.
+                    \item \texttt{Material-UI}: Cung cấp các thành phần:
+                    \begin{itemize}
+                        \item \texttt{Avatar}: Hiển thị ảnh đại diện.
+                        \item \texttt{Menu}, \texttt{MenuItem}: Tạo menu ngữ cảnh.
+                        \item \texttt{Divider}: Đường phân cách.
+                        \item \texttt{Box}, \texttt{Typography}: Sắp xếp bố cục và hiển thị văn bản.
+                        \item \texttt{useTheme}: Lấy theme ứng dụng.
+                    \end{itemize}
+                    \item \texttt{axios}: Gửi yêu cầu HTTP tới API.
+                    \item \texttt{ChangePasswordDialog}: Component để đổi mật khẩu.
+                    \item \texttt{useSnackbar}: Hook từ \texttt{SnackbarContext} để hiển thị thông báo.
+                \end{itemize}
+
+            \subsubsection{API URL}
+                \hspace*{0.6cm}Định nghĩa URL API:
+                \begin{lstlisting}
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{API\_URL}: Lấy từ biến môi trường hoặc mặc định là \texttt{http://localhost:5000}.
+                \end{itemize}
+
+            \subsubsection{Component AvatarMenu}
+                \hspace*{0.6cm}Component nhận các props:
+                \begin{lstlisting}
+    const AvatarMenu = ({ anchorEl, onClose, user, setUser, onLogout }) => {
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{anchorEl}: Vị trí neo menu.
+                    \item \texttt{onClose}: Hàm đóng menu.
+                    \item \texttt{user}: Thông tin người dùng (username, avatar).
+                    \item \texttt{setUser}: Cập nhật trạng thái người dùng.
+                    \item \texttt{onLogout}: Hàm xử lý đăng xuất.
+                \end{itemize}
+
+            \subsubsection{Trạng Thái}
+                \hspace*{0.6cm}Quản lý trạng thái cục bộ:
+                \begin{lstlisting}
+    const theme = useTheme();
+    const [openChangePassword, setOpenChangePassword] = useState(false);
+    const [oldPassword, setOldPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const { showSnackbar } = useSnackbar();
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{theme}: Lấy theme để tạo kiểu.
+                    \item \texttt{openChangePassword}: Điều khiển hiển thị \texttt{ChangePasswordDialog}.
+                    \item \texttt{oldPassword}, \texttt{newPassword}: Lưu mật khẩu cũ và mới.
+                    \item \texttt{showSnackbar}: Hàm hiển thị thông báo từ \texttt{SnackbarContext}.
+                \end{itemize}
+
+            \subsubsection{Xử Lý Cập Nhật Avatar}
+                \hspace*{0.6cm}Hàm xử lý tải lên avatar:
+                \begin{lstlisting}
+    const handleAvatarChange = async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append("avatar", file);
+            try {
+                const res = await axios.post(
+                    `${import.meta.env.VITE_API_URL}/api/users
+                    /update-avatar`,
+                    formData,
+                    { withCredentials: true }
+                );
+                const updatedAvatar = res.data.avatar;
+                setUser((prev) => ({ ...prev, avatar: updatedAvatar }));
+                localStorage.setItem("user", JSON.stringify({ username: user.username, avatar: updatedAvatar }));
+                showSnackbar("Update avatar successful", "success");
+                onClose();
+            } catch (error) {
+                console.error("Error when updating avatar:", error);
+                showSnackbar("Error when updating avatar", "error");
+            }
+        }
+    };
+                \end{lstlisting}
+                \begin{itemize}
+                    \item Lấy tệp ảnh từ \texttt{event.target.files}.
+                    \item Tạo \texttt{FormData} để gửi tệp lên API \texttt{/api/users/update-avatar}.
+                    \item Cập nhật trạng thái \texttt{user} và \texttt{localStorage} nếu thành công.
+                    \item Hiển thị thông báo bằng \texttt{showSnackbar}.
+                    \item Xử lý lỗi với thông báo lỗi.
+                \end{itemize}
+
+            \subsubsection{Xử Lý Đổi Mật Khẩu}
+                \hspace*{0.6cm}Hàm xử lý đổi mật khẩu:
+                \begin{lstlisting}
+    const handleChangePassword = async () => {
+        try {
+            const res = await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/users
+                /change-password`,
+                { oldPassword, newPassword },
+                { withCredentials: true }
+            );
+            showSnackbar(res.data.message, "success");
+            setOpenChangePassword(false);
+            setOldPassword("");
+            setNewPassword("");
+        } catch (error) {
+            console.error("Error when changing password:", error);
+            showSnackbar(error.response?.data?.message || "Error when changing password", "error");
+        }
+    };
+                \end{lstlisting}
+                \begin{itemize}
+                    \item Gửi yêu cầu POST tới \texttt{/api/users/change-password} với \texttt{oldPassword} và \texttt{newPassword}.
+                    \item Hiển thị thông báo thành công và reset trạng thái nếu thành công.
+                    \item Hiển thị thông báo lỗi nếu thất bại.
+                \end{itemize}
+
+            \subsubsection{Xử Lý Đăng Xuất}
+                \hspace*{0.6cm}Hàm xử lý đăng xuất:
+                \begin{lstlisting}
+    const handleLogoutClick = () => {
+        onLogout();
+        onClose();
+    };
+                \end{lstlisting}
+                \begin{itemize}
+                    \item Gọi \texttt{onLogout} và đóng menu.
+                \end{itemize}
+
+            \subsubsection{URL Ảnh Đại Diện}
+                \hspace*{0.6cm}Tạo URL cho avatar:
+                \begin{lstlisting}
+    const avatarSrc = user.avatar ? `${API_URL}${user.avatar}` : undefined;
+    console.log("Avatar URL in AvatarMenu:", avatarSrc);
+                \end{lstlisting}
+                \begin{itemize}
+                    \item Nối \texttt{API\_URL} với đường dẫn avatar, in ra để debug.
+                \end{itemize}
+
+            \subsubsection{Cấu Trúc JSX}
+                \hspace*{0.6cm}Giao diện menu:
+                \begin{lstlisting}
+    <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={onClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        PaperProps={{
+            sx: {
+                mt: 1,
+                width: 250,
+                bgcolor: theme.palette.background.paper,
+                color: theme.palette.text.primary,
+                boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
+            },
+        }}
+    >
+        <Box sx={{ display: "flex", alignItems: "center", p: 2 }}>
+            <Avatar
+                src={avatarSrc}
+                alt={user.username}
+                sx={{ mr: 2, width: 48, height: 48 }}
+            />
+            <Typography variant="subtitle1" fontWeight="bold">
+                {user.username}
+            </Typography>
+        </Box>
+        <Divider />
+        <MenuItem
+            component="label"
+            sx={{ py: 1.5, fontSize: "0.9rem" }}
+        >
+            Update avatar
+            <input
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={handleAvatarChange}
+            />
+        </MenuItem>
+        <MenuItem
+            onClick={() => setOpenChangePassword(true)}
+            sx={{ py: 1.5, fontSize: "0.9rem" }}
+        >
+            Changing Password
+        </MenuItem>
+        <MenuItem
+            onClick={handleLogoutClick}
+            sx={{ py: 1.5, fontSize: "0.9rem" }}
+        >
+            Logout
+        </MenuItem>
+    </Menu>
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{Menu}: Menu ngữ cảnh, neo tại \texttt{anchorEl}, hiển thị khi \texttt{anchorEl} tồn tại.
+                    \item \texttt{Box}: Hiển thị avatar và tên người dùng, căn chỉnh ngang.
+                    \item \texttt{Divider}: Đường phân cách.
+                    \item \texttt{MenuItem}:
+                    \begin{itemize}
+                        \item "Cập nhật avatar": Chứa input file ẩn để tải ảnh.
+                        \item "Đổi mật khẩu": Mở \texttt{ChangePasswordDialog}.
+                        \item "Đăng xuất": Gọi \texttt{handleLogoutClick}.
+                    \end{itemize}
+                \end{itemize}
+
+                Hộp thoại đổi mật khẩu:
+                \begin{lstlisting}
+    <ChangePasswordDialog
+        open={openChangePassword}
+        onClose={() => {
+            setOpenChangePassword(false);
+            setOldPassword("");
+            setNewPassword("");
+        }}
+        oldPassword={oldPassword}
+        setOldPassword={setOldPassword}
+        newPassword={newPassword}
+        setNewPassword={setNewPassword}
+        handleChangePassword={handleChangePassword}
+    />
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{ChangePasswordDialog}: Hộp thoại hiển thị khi \texttt{openChangePassword} là \texttt{true}.
+                \end{itemize}
+
+            \subsubsection{Export}
+                \begin{lstlisting}
+    export default AvatarMenu;
+                \end{lstlisting}
+            \subsubsection{Chức Năng Chính}
+                \begin{itemize}
+                    \item \textbf{Hiển Thị Menu Ngữ Cảnh}: Menu xuất hiện khi click avatar, hiển thị tên người dùng và các tùy chọn.
+                    \item \textbf{Cập Nhật Avatar}: Cho phép tải lên ảnh mới, gửi tới API và cập nhật trạng thái người dùng.
+                    \item \textbf{Đổi Mật Khẩu}: Mở hộp thoại để nhập mật khẩu cũ/mới, gửi yêu cầu đổi mật khẩu tới API.
+                    \item \textbf{Đăng Xuất}: Xử lý đăng xuất và đóng menu.
+                    \item \textbf Thông Báo**: Sử dụng \texttt{showSnackbar} để hiển thị thông báo thành công/lỗi.
+                \end{itemize}
+
+        \subsection{ChangePasswordDialog}
+            \hspace*{0.6cm}Là một hộp thoại (modal) sử dụng Material-UI để hiển thị biểu mẫu đổi mật khẩu cho người dùng. Nó cho phép người dùng nhập mật khẩu cũ và mật khẩu mới, và thực hiện xác thực khi nhấn nút "Đổi mật khẩu".
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.5\textwidth]{pictures/ChangePasswordDialog.png}
+                \caption{Giao diện ChangePasswordDialog}
+                \label{fig:change}
+            \end{figure}
+            \subsubsection{Import}
+                \hspace*{0.6cm}Các thư viện và thành phần Material-UI được nhập để xây dựng giao diện:
+                \begin{lstlisting}
+    import React from "react";
+    import { Dialog, Box, Typography, TextField, Button } from "@mui/material";
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{React}: Thư viện chính để xây dựng component.
+                    \item \texttt{Material-UI}: Cung cấp các thành phần:
+                    \begin{itemize}
+                        \item \texttt{Dialog}: Hộp thoại hiển thị biểu mẫu đổi mật khẩu.
+                        \item \texttt{Box}: Container để sắp xếp bố cục.
+                        \item \texttt{Typography}: Hiển thị tiêu đề.
+                        \item \texttt{TextField}: Trường nhập liệu cho mật khẩu cũ và mới.
+                        \item \texttt{Button}: Nút xác nhận hành động đổi mật khẩu.
+                    \end{itemize}
+                \end{itemize}
+
+            \subsubsection{Component ChangePasswordDialog}
+                \hspace*{0.6cm}Component nhận các props để quản lý trạng thái và xử lý đổi mật khẩu:
+                \begin{lstlisting}
+    const ChangePasswordDialog = ({
+        open,
+        onClose,
+        oldPassword,
+        setOldPassword,
+        newPassword,
+        setNewPassword,
+        handleChangePassword,
+    }) => {}
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{open}: Trạng thái hiển thị của hộp thoại (true/false).
+                    \item \texttt{onClose}: Hàm đóng hộp thoại.
+                    \item \texttt{oldPassword}, \texttt{setOldPassword}: Giá trị và hàm cập nhật mật khẩu cũ.
+                    \item \texttt{newPassword}, \texttt{setNewPassword}: Giá trị và hàm cập nhật mật khẩu mới.
+                    \item \texttt{handleChangePassword}: Hàm xử lý logic đổi mật khẩu.
+                \end{itemize}
+
+            \subsubsection{Cấu Trúc JSX}
+                \hspace*{0.6cm}Giao diện của \texttt{ChangePasswordDialog} được định nghĩa trong JSX:
+                \begin{lstlisting}
+    return (
+        <Dialog open={open} onClose={onClose}>
+            <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2, width: 300 }}>
+                <Typography variant="h6" fontWeight="bold">Change Password</Typography>
+                <TextField
+                    label="Old Password"
+                    type="password"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    fullWidth
+                />
+                <TextField
+                    label="New Password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    fullWidth
+                />
+                <Button variant="contained" onClick={handleChangePassword}>
+                    Validate
+                </Button>
+            </Box>
+        </Dialog>
+    );
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{Dialog}: Hộp thoại được điều khiển bởi \texttt{open} và \texttt{onClose}.
+                    \item \texttt{Box}: Container với:
+                    \begin{itemize}
+                        \item Padding 3 đơn vị (\texttt{p: 3}).
+                        \item Bố cục cột dọc (\texttt{flexDirection: "column"}).
+                        \item Khoảng cách giữa các phần tử (\texttt{gap: 2}).
+                        \item Chiều rộng cố định 300px (\texttt{width: 300}).
+                    \end{itemize}
+                    \item \texttt{Typography}: Tiêu đề "Đổi mật khẩu" với kiểu \texttt{h6}, in đậm.
+                    \item \texttt{TextField} (Mật khẩu cũ): Trường nhập liệu mật khẩu cũ, loại \texttt{password} để ẩn ký tự, liên kết với \texttt{oldPassword} và \texttt{setOldPassword}, chiếm toàn bộ chiều rộng (\texttt{fullWidth}).
+                    \item \texttt{TextField} (Mật khẩu mới): Trường nhập liệu mật khẩu mới, tương tự mật khẩu cũ, liên kết với \texttt{newPassword} và \texttt{setNewPassword}.
+                    \item \texttt{Button}: Nút "Xác nhận" với kiểu \texttt{contained} (nút nổi), gọi \texttt{handleChangePassword} khi click.
+                \end{itemize}
+
+            \subsubsection{Export}
+                \hspace*{0.6cm}Component được xuất để sử dụng trong các phần khác của ứng dụng:
+                \begin{lstlisting}
+    export default ChangePasswordDialog;
+                \end{lstlisting}
+
+            \subsubsection{Chức Năng Chính}
+                \begin{itemize}
+                    \item \textbf{Hiển Thị Hộp Thoại Đổi Mật Khẩu}: Hộp thoại xuất hiện khi \texttt{open} là \texttt{true}, đóng khi gọi \texttt{onClose}.
+                    \item \textbf{Nhập Thông Tin Mật Khẩu}: Người dùng nhập mật khẩu cũ và mới vào các trường \texttt{TextField}, dữ liệu được cập nhật qua \texttt{setOldPassword} và \texttt{setNewPassword}.
+                    \item \textbf{Xử Lý Đổi Mật Khẩu}: Nút "Xác nhận" gọi \texttt{handleChangePassword} để thực hiện logic đổi mật khẩu (được định nghĩa ở component cha, ví dụ: \texttt{AvatarMenu}).
+                    \item \textbf{Giao Diện}: Sử dụng Material-UI để tạo bố cục rõ ràng, trực quan, với các trường nhập liệu và nút được sắp xếp gọn gàng.
+                \end{itemize}
+        \subsection{Sidebar}
+            \hspace*{0.6cm}Là một thanh điều hướng bên (sidebar) sử dụng Material-UI để hiển thị danh sách các mục điều hướng như trạng thái, thiết bị và cài đặt. Nó hỗ trợ trạng thái mở rộng/rút gọn, tích hợp với \texttt{react-router-dom} để chuyển trang, và tự động đánh dấu mục đang chọn dựa trên đường dẫn hiện tại.
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.3\textwidth]{pictures/Sidebar.png}
+                \caption{Giao diện Sidebar}
+                \label{fig:sidebar}
+            \end{figure}
+            \subsubsection{Import}
+                \hspace*{0.6cm}Các thư viện và thành phần được nhập để xây dựng \texttt{Sidebar}:
+                \begin{lstlisting}
+    import React from 'react';
+    import {
+        Drawer, List, ListItem, ListItemIcon, ListItemText, Toolbar, Divider,
+    } from '@mui/material';
+    import StatusIcon from '@mui/icons-material/MonitorHeart';
+    import DevicesIcon from '@mui/icons-material/Devices';
+    import SettingIcon from '@mui/icons-material/Settings';
+    import { Link, useLocation } from 'react-router-dom';
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{React}: Thư viện chính để xây dựng component.
+                    \item \texttt{Material-UI}: Cung cấp các thành phần:
+                    \begin{itemize}
+                        \item \texttt{Drawer}: Thanh điều hướng bên.
+                        \item \texttt{List}, \texttt{ListItem}, \texttt{ListItemIcon}, \texttt{ListItemText}: Tạo danh sách điều hướng.
+                        \item \texttt{Toolbar}: Khoảng trống trên cùng để căn chỉnh với \texttt{AppBar}.
+                        \item \texttt{Divider}: Đường phân cách.
+                    \end{itemize}
+                    \item \texttt{StatusIcon}, \texttt{DevicesIcon}, \texttt{SettingIcon}: Biểu tượng cho các mục điều hướng.
+                    \item \texttt{Link}, \texttt{useLocation}: Từ \texttt{react-router-dom} để điều hướng và lấy đường dẫn hiện tại.
+                \end{itemize}
+
+            \subsubsection{Biến và Cấu Hình}
+                \hspace*{0.6cm}Định nghĩa chiều rộng và danh sách mục điều hướng:
+                \begin{lstlisting}
+    const expandedWidth = 200;
+    const collapsedWidth = 75;
+
+    const menuItems = [
+        { label: 'Status', path: '/status/', icon: <StatusIcon /> },
+        { label: 'Device', path: '/device/', icon: <DevicesIcon /> },
+        { label: 'Setting', path: '/setting/', icon: <SettingIcon /> },
+    ];
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{expandedWidth}: Chiều rộng khi sidebar mở (200px).
+                    \item \texttt{collapsedWidth}: Chiều rộng khi sidebar rút gọn (75px).
+                    \item \texttt{menuItems}: Mảng chứa các mục điều hướng, mỗi mục có nhãn (\texttt{label}), đường dẫn (\texttt{path}), và biểu tượng (\texttt{icon}).
+                \end{itemize}
+
+            \subsubsection{Component Sidebar}
+                \hspace*{0.6cm}Component nhận prop để điều khiển trạng thái mở/rút gọn:
+                \begin{lstlisting}
+    const Sidebar = ({ open }) => {
+        const location = useLocation();
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{open}: Trạng thái mở (true) hoặc rút gọn (false) của sidebar.
+                    \item \texttt{useLocation}: Hook lấy đường dẫn hiện tại để xác định mục được chọn.
+                \end{itemize}
+
+            \subsubsection{Cấu Trúc JSX}
+                \hspace*{0.6cm}Giao diện của \texttt{Sidebar} được định nghĩa trong JSX:
+                \begin{lstlisting}
+return (
+    <Drawer
+        variant="permanent"
+        sx={{
+            width: open ? expandedWidth : collapsedWidth,
+            flexShrink: 0,
+            '& .MuiDrawer-paper': {
+                width: open ? expandedWidth : collapsedWidth,
+                transition: 'width 0.3s',
+                overflowX: 'hidden',
+                boxSizing: 'border-box',
+                backgroundColor: (theme) => theme.palette.background.sidebar,
+                color: (theme) => theme.palette.text.primary,
+                borderRight: 'none',
+            },
+        }}
+    >
+        <Toolbar />
+        <Divider />
+        <List>
+            {menuItems.map((item) => {
+                const selected = location.pathname === item.path;
+
+                return (
+                    <ListItem
+                        key={item.path}
+                        button
+                        component={Link}
+                        to={item.path}
+                        selected={selected}
+                        sx={(theme) => ({
+                            minHeight: 50,
+                            px: 2,
+                            py: 1,
+                            justifyContent: open ? 'initial' : 'center',
+                            color: theme.palette.text.primary,
+                            '&:hover': {
+                                backgroundColor:
+                                    theme.palette.action.hover,
+                            },
+                            '&.Mui-selected': {
+                                backgroundColor:
+                                    theme.palette.action.selected,
+                                color: theme.palette.text.primary,
+                            },
+                        })}
+                    >
+                        <ListItemIcon
+                            sx={(theme) => ({
+                                minWidth: 40,
+                                mr: open ? 2 : 'auto',
+                                justifyContent: 'center',
+                                color: theme.palette.text.primary,
+                            })}
+                        >
+                            {item.icon}
+                        </ListItemIcon>
+                        {open && <ListItemText primary={item.label} />}
+                    </ListItem>
+                );
+            })}
+        </List>
+    </Drawer>
+);
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{Drawer}: Thanh điều hướng cố định (\texttt{variant="permanent"}) với:
+                    \begin{itemize}
+                        \item Chiều rộng động dựa trên \texttt{open} (\texttt{expandedWidth} hoặc \texttt{collapsedWidth}).
+                        \item Hiệu ứng chuyển đổi mượt mà (\texttt{transition: 'width 0.3s'}).
+                        \item Màu nền từ \texttt{theme.palette.background.sidebar}.
+                        \item Không có viền phải (\texttt{borderRight: 'none'}).
+                    \end{itemize}
+                    \item \texttt{Toolbar}: Khoảng trống trên cùng để căn chỉnh với \texttt{AppBar}.
+                    \item \texttt{Divider}: Đường phân cách giữa \texttt{Toolbar} và danh sách.
+                    \item \texttt{List}: Danh sách các mục điều hướng, lặp qua \texttt{menuItems} để tạo:
+                    \begin{itemize}
+                        \item \texttt{ListItem}: Mỗi mục là một nút liên kết (\texttt{component={Link}}) tới \texttt{item.path}.
+                        \item \texttt{selected}: Đánh dấu mục đang chọn nếu \texttt{location.pathname} khớp \texttt{item.path}.
+                        \item Tùy chỉnh giao diện: Căn giữa khi rút gọn, căn trái khi mở; hiệu ứng hover và chọn từ theme.
+                    \end{itemize}
+                    \item \texttt{ListItemIcon}: Hiển thị biểu tượng, căn giữa khi rút gọn.
+                    \item \texttt{ListItemText}: Hiển thị nhãn khi \texttt{open} là \texttt{true}.
+                \end{itemize}
+
+            \subsubsection{Export}
+                \hspace*{0.6cm}Component được xuất để sử dụng trong ứng dụng:
+                \begin{lstlisting}
+    export default Sidebar;
+                \end{lstlisting}
+
+            \subsubsection{Chức Năng Chính}
+                \begin{itemize}
+                    \item \textbf{Điều Hướng Ứng Dụng}: Cung cấp các mục điều hướng ("Status", "Device", "Setting") với liên kết tới các trang tương ứng thông qua \texttt{react-router-dom}.
+                    \item \textbf{Trạng Thái Mở/Rút Gọn}: Hiển thị đầy đủ (với nhãn) hoặc rút gọn (chỉ biểu tượng) dựa trên prop \texttt{open}.
+                    \item \textbf{Đánh Dấu Mục Được Chọn}: Tự động làm nổi bật mục tương ứng với đường dẫn hiện tại.
+                    \item \textbf{Giao Diện}: Sử dụng Material-UI để tạo bố cục mượt mà, hiệu ứng chuyển đổi và giao diện tùy chỉnh theo theme.
+                \end{itemize}
+    \section{PAGES}
+        \subsection{Status}
+            \hspace*{0.6cm}Là trang hiển thị trạng thái của hệ thống, ử dụng \texttt{axios} để lấy danh sách thiết bị từ API và Socket.IO để nhận cập nhật trạng thái thiết bị thời gian thực. Nó hiển thị danh sách thiết bị với tên, trạng thái và thời gian cập nhật, đồng thời xử lý xác thực người dùng và thông báo lỗi qua \texttt{SnackbarContext}.
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=1\textwidth]{pictures/Status.png}
+                \caption{Giao diện Status}
+                \label{fig:status}
+            \end{figure}
+            \subsubsection{Import}
+                \hspace*{0.6cm}Các thư viện và thành phần được nhập:
+                \begin{lstlisting}
+    import { Box, Typography, List, ListItem, ListItemText } from "@mui/material";
+    import { useTheme } from "@mui/material/styles";
+    import React, { useEffect, useState } from "react";
+    import axios from "axios";
+    import io from "socket.io-client";
+    import { useNavigate } from "react-router-dom";
+    import { useSnackbar } from '../context/SnackbarContext';
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{Material-UI}: Cung cấp \texttt{Box}, \texttt{Typography}, \texttt{List}, \texttt{ListItem}, \texttt{ListItemText} cho giao diện và \texttt{useTheme} để lấy theme.
+                    \item \texttt{React}, \texttt{useEffect}, \texttt{useState}: Quản lý trạng thái và vòng đời component.
+                    \item \texttt{axios}: Gửi yêu cầu HTTP tới API.
+                    \item \texttt{io}: Kết nối Socket.IO thời gian thực.
+                    \item \texttt{useNavigate}: Điều hướng trang từ \texttt{react-router-dom}.
+                    \item \texttt{useSnackbar}: Hook hiển thị thông báo từ \texttt{SnackbarContext}.
+                \end{itemize}
+
+            \subsubsection{API và Socket.IO}
+                \hspace*{0.6cm}Định nghĩa URL API và kết nối Socket.IO:
+                \begin{lstlisting}
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+    const getToken = () => {
+        return document.cookie.split("; ").find(row => row.startsWith("authToken="))?.split("=")[1] || null;
+    };
+
+    const socket = io(API_URL, {
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        transports: ["websocket", "polling"],
+        auth: { token: getToken() }
+    });
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{API\_URL}: Lấy từ biến môi trường hoặc mặc định \texttt{http://localhost:5000}.
+                    \item \texttt{getToken}: Lấy token xác thực từ cookie.
+                    \item \texttt{socket}: Kết nối Socket.IO với:
+                    \begin{itemize}
+                        \item Tự động thử lại 5 lần, cách nhau 1 giây.
+                        \item Ưu tiên WebSocket, fallback sang polling.
+                        \item Gửi token xác thực qua \texttt{auth}.
+                    \end{itemize}
+                \end{itemize}
+
+            \subsubsection{Component StatusPage}
+                \hspace*{0.6cm}Component nhận prop \texttt{user}:
+                \begin{lstlisting}
+    const StatusPage = ({ user }) => {
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{user}: Thông tin người dùng để kiểm tra đăng nhập.
+                \end{itemize}
+
+            \subsubsection{Trạng Thái}
+                \hspace*{0.6cm}Quản lý trạng thái:
+                \begin{lstlisting}
+    const theme = useTheme();
+    const navigate = useNavigate();
+    const [devices, setDevices] = useState([]);
+    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const { showSnackbar } = useSnackbar();
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{theme}: Lấy theme từ Material-UI.
+                    \item \texttt{navigate}: Hàm điều hướng trang.
+                    \item \texttt{devices}: Danh sách thiết bị từ API.
+                    \item \texttt{error}: Lưu thông báo lỗi.
+                    \item \texttt{loading}: Trạng thái tải dữ liệu.
+                    \item \texttt{showSnackbar}: Hiển thị thông báo.
+                \end{itemize}
+
+            \subsubsection{Xử Lý Dữ Liệu và Socket.IO}
+                \hspace*{0.6cm}Sử dụng \texttt{useEffect} để lấy dữ liệu và thiết lập Socket.IO:
+                \begin{lstlisting}
+    useEffect(() => {
+        if (!user) {
+            navigate("/login");
+            return;
+        }
+
+        const fetchDevices = async () => {
+            try {
+                console.log("Fetching devices from API:", `${API_URL}/api/devices`);
+                const response = await axios.get(`${API_URL}/api/devices`, {
+                    withCredentials: true,
+                });
+                console.log("Devices fetched:", response.data);
+                setDevices(response.data);
+                setLoading(false);
+            } catch (error) {
+                const errorMsg = error.response?.data?.message || error.message;
+                console.error("Error fetching devices:", errorMsg);
+                setError(`Error fetching devices: ${errorMsg}`);
+                showSnackbar(`Error fetching devices: ${errorMsg}`, "error");
+                setLoading(false);
+                if (errorMsg.includes("") || errorMsg.includes("Invalid token")) {
+                    navigate("/login");
+                }
+            }
+        };
+        fetchDevices();
+
+        socket.on("connect", () => {
+            console.log("Connected to Socket.IO from Frontend! ID:"", socket.id);
+        });
+        socket.on("deviceUpdate", (updatedDevice) => {
+            console.log("Receive deviceUpdate:", updatedDevice);
+            try {
+                if (!updatedDevice || !updatedDevice.name) {
+                    console.warn("Invalid deviceUpdate data", updatedDevice);
+                    return;
+                }
+                setDevices((prev) => {
+                    const existingDevice = prev.find((device) => device.name === updatedDevice.name);
+                    if (existingDevice) {
+                        return prev.map((device) =>
+                            device.name === updatedDevice.name ? updatedDevice : device
+                        );
+                    }
+                    return [...prev, updatedDevice];
+                });
+            } catch (error) {
+                console.error("Error processing deviceUpdate:", error.message);
+                setError(`Error processing deviceUpdate: ${error.message}`);
+                showSnackbar(`Error processing deviceUpdate: ${error.message}`, "error");
+            }
+        });
+        socket.on("connect_error", (err) => {
+            console.error("Socket.IO connection error:", err.message);
+            setError(`Socket.IO connection error: ${err.message}`);
+            showSnackbar(`Socket.IO connection error: ${err.message}`, "error");
+            navigate("/login");
+        });
+
+        return () => {
+            socket.off("deviceUpdate");
+            socket.off("connect");
+            socket.off("connect_error");
+            socket.disconnect();
+        };
+    }, [user, navigate]);
+                \end{lstlisting}
+                \begin{itemize}
+                    \item Kiểm tra \texttt{user}: Nếu chưa đăng nhập, chuyển hướng tới \texttt{/login}.
+                    \item \texttt{fetchDevices}: Gửi yêu cầu GET tới \texttt{/api/devices} để lấy danh sách thiết bị, xử lý lỗi và hiển thị thông báo qua \texttt{showSnackbar}.
+                    \item Socket.IO:
+                    \begin{itemize}
+                        \item Lắng nghe \texttt{connect}: Ghi log khi kết nối thành công.
+                        \item Lắng nghe \texttt{deviceUpdate}: Cập nhật hoặc thêm thiết bị vào \texttt{devices}.
+                        \item Lắng nghe \texttt{connecterror}: Hiển thị lỗi và chuyển hướng tới \texttt{/login}.
+                    \end{itemize}
+                    \item Cleanup: Hủy các listener và ngắt kết nối Socket.IO khi component unmount.
+                \end{itemize}
+
+            \subsubsection{Cấu Trúc JSX}
+                \hspace*{0.6cm}Giao diện của \texttt{StatusPage}:
+                \begin{lstlisting}
+return (
+    <Box sx={{ p: 3, minHeight: "100vh", bgcolor: "background.default" }}>
+        <Typography variant="h4" sx={{ color: "text.primary", mb: 2 }}>
+            Device Status
+        </Typography>
+        {loading && (
+        <Typography sx={{ color: "text.secondary" }}>
+            Loading devices...
+        </Typography>
+        )}
+        {error && (
+        <Typography sx={{ color: "error.main" }}>
+            {error}
+        </Typography>
+        )}
+        {devices.length === 0 && !loading ? (
+        <Typography sx={{ color: "text.secondary" }}>
+            No devices found.
+        </Typography>
+        ) : (
+            <List sx={{ p: 0 }}>
+                {devices.map((device, index) => (
+                    <ListItem
+                        key={device.name || index}
+                        sx={{
+                            my: 1,
+                            p: 1.5,
+                            bgcolor: "background.paper",
+                            borderRadius: "5px",
+                            color: "text.primary"
+                        }}
+                    >
+                        <ListItemText
+                            primary={`${device.name} - Status: ${device.status} (Update: ${
+                                device.updatedAt ? new Date(device.updatedAt).
+                                toLocaleString() : "N/A"
+                            })`}
+                        />
+                    </ListItem>
+                ))}
+            </List>
+        )}  
+    </Box>
+);
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{Box}: Container chính với padding 3, chiều cao tối thiểu 100vh, màu nền từ theme.
+                    \item \texttt{Typography} (tiêu đề): "Device Status" với kiểu \texttt{h4}.
+                    \item Trạng thái tải: Hiển thị "Đang tải thiết bị..." khi \texttt{loading} là \texttt{true}.
+                    \item Lỗi: Hiển thị thông báo lỗi với màu đỏ nếu \texttt{error} tồn tại.
+                    \item Không có thiết bị: Hiển thị "Không có thiết bị nào" nếu \texttt{devices} rỗng và không tải.
+                    \item Danh sách thiết bị: Sử dụng \texttt{List} và \texttt{ListItem} để hiển thị thông tin thiết bị (tên, trạng thái, thời gian cập nhật).
+                \end{itemize}
+
+            \subsubsection{Export}
+                \hspace*{0.6cm}Component được xuất:
+                \begin{lstlisting}
+    export default StatusPage;
+                \end{lstlisting}
+
+            \subsubsection{Chức Năng Chính}
+                \begin{itemize}
+                    \item \textbf{Xác Thực Người Dùng}: Chuyển hướng tới \texttt{/login} nếu chưa đăng nhập hoặc token không hợp lệ.
+                    \item \textbf{Lấy Danh Sách Thiết Bị}: Gửi yêu cầu API để lấy danh sách thiết bị ban đầu.
+                    \item \textbf{Cập Nhật Thời Gian Thực}: Nhận cập nhật trạng thái thiết bị qua Socket.IO (\texttt{deviceUpdate}).
+                    \item \textbf{Xử Lý Lỗi}: Hiển thị thông báo lỗi qua \texttt{showSnackbar} và chuyển hướng nếu cần.
+                    \item \textbf{Giao Diện}: Hiển thị danh sách thiết bị với thông tin rõ ràng, hỗ trợ trạng thái tải và thông báo lỗi.
+                \end{itemize}
+        \subsection{Device}
+            \hspace*{0.6cm}Là trang hiển thị danh sách thiết bị, cho phép người dùng thêm, sửa và xóa thiết bị. Nó sử dụng \texttt{axios} để gửi yêu cầu tới API và Socket.IO để nhận cập nhật thời gian thực. Giao diện bao gồm danh sách thiết bị, các nút hành động và hộp thoại xác nhận.
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=1\textwidth]{pictures/Device.png}
+                \caption{Giao diện Device}
+                \label{fig:device}
+            \end{figure}
+        \subsection{Setting}
+            \hspace*{0.6cm}Là trang sử dụng Material-UI để cung cấp giao diện cho phép người dùng thiết lập các tùy chỉnh của trang, đầu tiên là chuyển đổi giữa chế độ sáng (\texttt{light}) và chế độ tối (\texttt{dark}) thông qua một công tắc (\texttt{Switch})
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=1\textwidth]{pictures/Setting.png}
+                \caption{Giao diện Setting}
+                \label{fig:setting}
+            \end{figure}
+            \subsubsection{Import}
+                \hspace{0.6cm}Các thư viện và thành phần được nhập:
+                \begin{lstlisting}
+                import React from 'react';
+                import { Typography, Switch, FormControlLabel } from '@mui/material';
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{React}: Thư viện chính để xây dựng component.
+                    \item \texttt{Material-UI}: Cung cấp các thành phần:
+                    \begin{itemize}
+                        \item \texttt{Typography}: Hiển thị tiêu đề.
+                        \item \texttt{Switch}: Công tắc để chuyển đổi chế độ.
+                        \item \texttt{FormControlLabel}: Nhãn cho công tắc.
+                    \end{itemize}
+                \end{itemize}
+
+            \subsubsection{Component SettingPage}
+                \hspace*{0.6cm}Component nhận các props:
+                \begin{lstlisting}
+                const SettingPage = ({ mode, setMode }) => {
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{mode}: Chế độ giao diện hiện tại (\texttt{light} hoặc \texttt{dark}).
+                    \item \texttt{setMode}: Hàm cập nhật chế độ giao diện.
+                \end{itemize}
+
+            \subsubsection{Xử Lý Sự Kiện}
+                \hspace*{0.6cm}Hàm xử lý chuyển đổi chế độ:
+                \begin{lstlisting}
+                const handleToggle = () => {
+                    setMode(mode === 'light' ? 'dark' : 'light');
+                };
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{handleToggle}: Chuyển đổi \texttt{mode} giữa \texttt{light} và \texttt{dark} bằng cách gọi \texttt{setMode}.
+                \end{itemize}
+
+            \subsubsection{Cấu Trúc JSX}
+                \hspace*{0.6cm}Giao diện của \texttt{SettingPage}:
+                \begin{lstlisting}
+    return (
+        <div>
+            <Typography variant="h4" gutterBottom fontWeight="bold">
+                Settings
+            </Typography>
+
+            <FormControlLabel
+                control={<Switch checked={mode === 'dark'} onChange={handleToggle} />}
+                label={mode === 'dark' ? 'LightMode' : 'DarkMode'}
+            />
+        </div>
+    );
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{div}: Container chính cho giao diện.
+                    \item \texttt{Typography}: Tiêu đề "Settings" với kiểu \texttt{h4}, in đậm, có khoảng cách dưới (\texttt{gutterBottom}).
+                    \item \texttt{FormControlLabel}: Nhãn và công tắc:
+                    \begin{itemize}
+                        \item \texttt{control}: \texttt{Switch} được chọn khi \texttt{mode} là \texttt{dark}, gọi \texttt{handleToggle} khi thay đổi.
+                        \item \texttt{label}: Hiển thị \texttt{LightMode} khi \texttt{mode} là \texttt{dark}, và \texttt{DarkMode} khi \texttt{mode} là \texttt{light}.
+                    \end{itemize}
+                \end{itemize}
+
+            \subsubsection{Export}
+                \hspace*{0.6cm}Component được xuất:
+                \begin{lstlisting}
+    export default SettingPage;
+                \end{lstlisting}
+
+            \subsubsection{Chức Năng Chính}
+                \begin{itemize}
+                    \item \textbf{Chuyển Đổi Chế Độ Giao Diện}: Cho phép người dùng chuyển đổi giữa chế độ sáng (\texttt{light}) và chế độ tối (\texttt{dark}) thông qua công tắc.
+                    \item \textbf{Giao Diện Trực Quan}: Sử dụng Material-UI để tạo bố cục đơn giản với tiêu đề và công tắc được sắp xếp rõ ràng.
+                    \item \textbf{Quản Lý Trạng Thái}: Nhận và cập nhật trạng thái \texttt{mode} thông qua props \texttt{mode} và \texttt{setMode}.
+                \end{itemize}
+    \section{CONTEXTS}
+        \subsection{SnackbarContext}
+            \hspace*{0.6cm}Dùng đề hiển thị các thông báo của ứng dụng sử dụng Snackbar trong MUI thay cho thông báo mặc định dùng Alert của Javascript.
+            \begin{figure}[H]
+                \centering
+                \includegraphics[width=0.5\textwidth]{pictures/Snackbar.png}
+                \caption{Giao diện Snackbar}
+                \label{fig:snackbar}
+            \end{figure}
+            \subsubsection{Import}
+                \hspace*{0.6cm}Các thư viện và thành phần được nhập:
+                \begin{lstlisting}
+    import React, { createContext, useContext, useState } from 'react';
+    import { Snackbar, Alert, Slide } from '@mui/material';
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{React}, \texttt{createContext}, \texttt{useContext}, \texttt{useState}: Quản lý ngữ cảnh và trạng thái.
+                    \item \texttt{Material-UI}: Cung cấp:
+                    \begin{itemize}
+                        \item \texttt{Snackbar}: Hiển thị thông báo tạm thời.
+                        \item \texttt{Alert}: Thành phần thông báo với mức độ nghiêm trọng.
+                        \item \texttt{Slide}: Hiệu ứng trượt cho thông báo.
+                    \end{itemize}
+                \end{itemize}
+
+            \subsubsection{Tạo Context}
+                \hspace*{0.6cm}Tạo ngữ cảnh để chia sẻ hàm \texttt{showSnackbar}:
+                \begin{lstlisting}
+    const SnackbarContext = createContext();
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{SnackbarContext}: Ngữ cảnh để các component con truy cập \texttt{showSnackbar}.
+                \end{itemize}
+
+            \subsubsection{Component SnackbarProvider}
+                \hspace*{0.6cm}Component cung cấp ngữ cảnh và giao diện thông báo:
+                \begin{lstlisting}
+    export const SnackbarProvider = ({ children }) => {
+        const [open, setOpen] = useState(false);
+        const [message, setMessage] = useState('');
+        const [severity, setSeverity] = useState('success');
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{children}: Các component con được bao bọc bởi \texttt{SnackbarProvider}.
+                    \item \texttt{open}: Trạng thái hiển thị của snackbar (\texttt{true}/\texttt{false}).
+                    \item \texttt{message}: Nội dung thông báo.
+                    \item \texttt{severity}: Mức độ nghiêm trọng (\texttt{success}, \texttt{error}, v.v.).
+                \end{itemize}
+
+            \subsubsection{Xử Lý Thông Báo}
+                \hspace*{0.6cm}Hàm kích hoạt và đóng thông báo:
+                \begin{lstlisting}
+    const showSnackbar = (msg, sev = 'success') => {
+        setMessage(msg);
+        setSeverity(sev);
+        setOpen(true);
+    };
+
+    const handleClose = (event, reason) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setOpen(false);
+    };
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{showSnackbar}: Cập nhật \texttt{message}, \texttt{severity} và mở snackbar.
+                    \item \texttt{handleClose}: Đóng snackbar, bỏ qua nếu người dùng click ra ngoài (\texttt{clickaway}).
+                \end{itemize}
+
+            \subsubsection{Cấu Trúc JSX}
+                \hspace*{0.6cm}Giao diện và cung cấp ngữ cảnh:
+                \begin{lstlisting}
+return (
+    <SnackbarContext.Provider value={{ showSnackbar }}>
+        {children}
+        <Snackbar
+            open={open}
+            autoHideDuration={3000}
+            onClose={handleClose}
+            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            TransitionComponent={Slide}
+            transitionDuration={500}
+        >
+            <Alert
+                onClose={handleClose}
+                severity={severity}
+                sx={{
+                    width: '100%',
+                    bgcolor: severity === 'success' ? '#4caf50' : '#f44336',
+                    color: '#fff',
+                    '& .MuiAlert-icon': {
+                        color: '#fff',
+                    },
+                    borderRadius: '8px',
+                    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
+                }}
+            >
+                {message}
+            </Alert>
+        </Snackbar>
+    </SnackbarContext.Provider>
+);
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{SnackbarContext.Provider}: Cung cấp \texttt{showSnackbar} cho các component con.
+                    \item \texttt{children}: Hiển thị các component con.
+                    \item \texttt{Snackbar}: Thông báo với:
+                    \begin{itemize}
+                        \item Hiển thị khi \texttt{open} là \texttt{true}.
+                        \item Tự động ẩn sau 3 giây (\texttt{autoHideDuration={3000}}).
+                        \item Vị trí góc trên bên phải (\texttt{anchorOrigin}).
+                        \item Hiệu ứng trượt (\texttt{Slide}) trong 500ms.
+                    \end{itemize}
+                    \item \texttt{Alert}: Thành phần thông báo với:
+                    \begin{itemize}
+                        \item Mức độ \texttt{severity} (ảnh hưởng màu sắc).
+                        \item Tùy chỉnh giao diện: Màu nền xanh (\texttt{\#4caf50}) cho \texttt{success}, đỏ (\texttt{\#f44336}) cho \texttt{error}; chữ và icon trắng; bo góc và bóng.
+                    \end{itemize}
+                \end{itemize}
+
+            \subsubsection{Hook useSnackbar}
+                \hspace*{0.6cm}Hook để truy cập \texttt{showSnackbar}:
+                \begin{lstlisting}
+    export const useSnackbar = () => {
+        const context = useContext(SnackbarContext);
+        if (!context) {
+            throw new Error('useSnackbar must be used within a SnackbarProvider');
+        }
+        return context;
+    };
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{useSnackbar}: Truy cập \texttt{SnackbarContext}, ném lỗi nếu không nằm trong \texttt{SnackbarProvider}.
+                \end{itemize}
+
+            \subsubsection{Chức Năng Chính}
+                \begin{itemize}
+                    \item \textbf{Hiển Thị Thông Báo}: Cho phép các component con kích hoạt thông báo với nội dung và mức độ nghiêm trọng tùy chỉnh qua \texttt{showSnackbar}.
+                    \item \textbf{Hiệu Ứng Trượt}: Sử dụng \texttt{Slide} để tạo hiệu ứng mượt mà khi thông báo xuất hiện/biến mất.
+                    \item \textbf{Tùy Chỉnh Giao Diện}: Tùy chỉnh màu sắc, bo góc và bóng cho thông báo dựa trên \texttt{severity}.
+                    \item \textbf{Quản Lý Trạng Thái}: Điều khiển hiển thị, nội dung và loại thông báo thông qua trạng thái \texttt{open}, \texttt{message}, \texttt{severity}.
+                \end{itemize}
+    \section{HOOKS}
+        \subsection{useAuth}
+            \hspace*{0.6cm}Là một hook tùy chỉnh, cung cấp các chức năng quản lý xác thực người dùng, bao gồm đăng nhập và đăng xuất. Nó tích hợp với API thông qua \texttt{axios}, sử dụng Socket.IO để quản lý kết nối thời gian thực, và hiển thị thông báo qua \texttt{SnackbarContext}. Hook này được sử dụng trong các component như \texttt{Header} để xử lý trạng thái đăng nhập.
+            \subsubsection{Import}
+                \hspace*{0.6cm}Các thư viện và thành phần được nhập:
+                \begin{lstlisting}
+    import { useState } from "react";
+    import { useNavigate } from "react-router-dom";
+    import axios from "axios";
+    import loginUser from "../api/loginUser";
+    import { useSnackbar } from '../context/SnackbarContext';
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{useState}: Quản lý trạng thái cục bộ.
+                    \item \texttt{useNavigate}: Điều hướng trang từ \texttt{react-router-dom}.
+                    \item \texttt{axios}: Gửi yêu cầu HTTP tới API.
+                    \item \texttt{loginUser}: Hàm API tùy chỉnh để đăng nhập.
+                    \item \texttt{useSnackbar}: Hook hiển thị thông báo từ \texttt{SnackbarContext}.
+                \end{itemize}
+
+            \subsubsection{Hook useAuth}
+                \hspace*{0.6cm}Hook nhận các tham số và quản lý trạng thái:
+                \begin{lstlisting}
+    const useAuth = (setUser, socket) => {
+        const [email, setEmail] = useState("");
+        const [password, setPassword] = useState("");
+        const [openLogin, setOpenLogin] = useState(false);
+        const { showSnackbar } = useSnackbar();
+        const navigate = useNavigate();
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{setUser}: Hàm cập nhật trạng thái người dùng.
+                    \item \texttt{socket}: Đối tượng Socket.IO để quản lý kết nối.
+                    \item \texttt{email}, \texttt{setEmail}: Quản lý email nhập vào.
+                    \item \texttt{password}, \texttt{setPassword}: Quản lý mật khẩu nhập vào.
+                    \item \texttt{openLogin}, \texttt{setOpenLogin}: Điều khiển hiển thị hộp thoại đăng nhập.
+                    \item \texttt{showSnackbar}: Hiển thị thông báo.
+                    \item \texttt{navigate}: Điều hướng trang.
+                \end{itemize}
+
+            \subsubsection{Xử Lý Đăng Nhập}
+                \hspace*{0.6cm}Hàm xử lý đăng nhập:
+                \begin{lstlisting}
+    const handleLogin = async () => {
+        const res = await loginUser(email, password);
+        if (res.success) {
+            setUser({ username: res.username, avatar: res.avatar });
+            localStorage.setItem("user", JSON.stringify({ username: res.username, avatar: res.avatar }));
+            setOpenLogin(false);
+            setPassword("");
+            socket.connect();
+            showSnackbar("Login successful", "success");
+            navigate("/status");
+        } else {
+            showSnackbar(res.message || "Login failed", "error");
+        }
+    };
+                \end{lstlisting}
+                \begin{itemize}
+                    \item Gọi \texttt{loginUser} với \texttt{email} và \texttt{password}.
+                    \item Nếu thành công:
+                    \begin{itemize}
+                        \item Cập nhật \texttt{user} với \texttt{username} và \texttt{avatar}.
+                        \item Lưu thông tin vào \texttt{localStorage}.
+                        \item Đóng hộp thoại, xóa mật khẩu, kết nối Socket.IO.
+                        \item Hiển thị thông báo thành công và chuyển hướng tới \texttt{/status}.
+                    \end{itemize}
+                    \item Nếu thất bại: Hiển thị thông báo lỗi.
+                \end{itemize}
+
+            \subsubsection{Xử Lý Đăng Xuất}
+                \hspace*{0.6cm}Hàm xử lý đăng xuất:
+                \begin{lstlisting}
+    const handleLogout = async () => {
+        try {
+            await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/users/logout`,
+                {},
+                { withCredentials: true }
+            );
+            setUser(null);
+            localStorage.removeItem("user");
+            socket.disconnect();
+            showSnackbar("Logout successful", "success");
+            navigate("/status");
+        } catch (error) {
+            console.error("Error during logout:", error);
+            showSnackbar("Error during logout", "error");
+        }
+    };
+                \end{lstlisting}
+                \begin{itemize}
+                    \item Gửi yêu cầu POST tới \texttt{/api/users/logout}.
+                    \item Nếu thành công:
+                    \begin{itemize}
+                        \item Xóa \texttt{user} và \texttt{localStorage}.
+                        \item Ngắt kết nối Socket.IO.
+                        \item Hiển thị thông báo thành công và chuyển hướng tới \texttt{/status}.
+                    \end{itemize}
+                    \item Nếu thất bại: Ghi log và hiển thị thông báo lỗi.
+                \end{itemize}
+
+            \subsubsection{Trả Về}
+                \hspace*{0.6cm}Hook trả về các giá trị và hàm:
+                \begin{lstlisting}
+    return {
+        email,
+        setEmail,
+        password,
+        setPassword,
+        openLogin,
+        setOpenLogin,
+        handleLogin,
+        handleLogout,
+    };
+                \end{lstlisting}
+                \begin{itemize}
+                    \item Trả về trạng thái (\texttt{email}, \texttt{password}, \texttt{openLogin}) và các hàm xử lý để sử dụng trong component.
+                \end{itemize}
+
+            \subsubsection{Export}
+                \hspace*{0.6cm}Hook được xuất:
+                \begin{lstlisting}
+    export default useAuth;
+                \end{lstlisting}
+
+            \subsubsection{Chức Năng Chính}
+                \begin{itemize}
+                    \item \textbf{Quản Lý Đăng Nhập}: Xử lý đăng nhập thông qua API, cập nhật trạng thái người dùng, lưu trữ cục bộ, và kết nối Socket.IO.
+                    \item \textbf{Quản Lý Đăng Xuất}: Gửi yêu cầu đăng xuất, xóa dữ liệu người dùng, ngắt Socket.IO, và điều hướng trang.
+                    \item \textbf{Hiển Thị Thông Báo}: Sử dụng \texttt{showSnackbar} để thông báo kết quả đăng nhập/đăng xuất.
+                    \item \textbf{Điều Hướng Trang}: Chuyển hướng tới \texttt{/status} sau khi đăng nhập hoặc đăng xuất.
+                    \item \textbf{Quản Lý Trạng Thái}: Cung cấp trạng thái và hàm để điều khiển giao diện đăng nhập.
+                \end{itemize}
+    \section{API}
+        \subsection{loginUser}
+            \hspace*{0.6cm}Là một hàm API sử dụng \texttt{axios} để gửi yêu cầu đăng nhập người dùng tới server. Hàm này nhận email và mật khẩu, gửi yêu cầu POST tới endpoint API, và trả về thông tin người dùng nếu thành công hoặc thông báo lỗi nếu thất bại. Nó được sử dụng trong hook \texttt{useAuth} để xử lý logic đăng nhập.
+            \subsection{Import}
+                \hspace*{0.6cm}Thư viện được nhập:
+                \begin{lstlisting}
+    import axios from "axios";
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{axios}: Thư viện để gửi yêu cầu HTTP tới API.
+                \end{itemize}
+
+            \subsubsection{Cấu Hình Axios}
+                \hspace*{0.6cm}Cấu hình mặc định cho \texttt{axios}:
+                \begin{lstlisting}
+    axios.defaults.withCredentials = true;
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{withCredentials}: Cho phép gửi cookie trong các yêu cầu HTTP, cần thiết cho xác thực dựa trên cookie.
+                \end{itemize}
+
+            \subsubsection{Hàm loginUser}
+                \hspace*{0.6cm}Hàm xử lý đăng nhập:
+                \begin{lstlisting}
+    const loginUser = async (email, password) => {
+        try {
+            localStorage.removeItem("token");
+            localStorage.removeItem("authToken");
+
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/users/login`, {
+                email,
+                password,
+            });
+            localStorage.setItem("user", JSON.stringify({ username: res.data.username, avatar: res.data.avatar }));
+            return { success: true, username: res.data.username, avatar: res.data.avatar };
+        } catch (err) {
+            return { success: false, message: err.response?.data?.message || "Login error" };
+        }
+    };
+                \end{lstlisting}
+                \begin{itemize}
+                    \item \texttt{email}, \texttt{password}: Tham số đầu vào cho yêu cầu đăng nhập.
+                    \item Xóa \texttt{token} và \texttt{authToken} từ \texttt{localStorage} để đảm bảo không sử dụng token cũ.
+                    \item Gửi yêu cầu POST tới \texttt{/api/users/login} với \texttt{email} và \texttt{password}.
+                    \item Nếu thành công:
+                    \begin{itemize}
+                        \item Lưu thông tin người dùng (\texttt{username}, \texttt{avatar}) vào \texttt{localStorage}.
+                        \item Trả về đối tượng \texttt{\{ success: true, username, avatar \}}.
+                    \end{itemize}
+                    \item Nếu thất bại:
+                    \begin{itemize}
+                        \item Trả về đối tượng \texttt{\{ success: false, message \}} với thông báo lỗi từ server hoặc mặc định là \texttt{"Login error"}.
+                    \end{itemize}
+                \end{itemize}
+
+            \subsubsection{Export}
+                \hspace*{0.6cm}Hàm được xuất:
+                \begin{lstlisting}
+    export default loginUser;
+                \end{lstlisting}
+
+            \subsubsection{Chức Năng Chính}
+                \begin{itemize}
+                    \item \textbf{Gửi Yêu Cầu Đăng Nhập}: Sử dụng \texttt{axios} để gửi email và mật khẩu tới endpoint \texttt{/api/users/login}.
+                    \item \textbf{Xử Lý Phản Hồi}: Lưu thông tin người dùng vào \texttt{localStorage} nếu thành công, hoặc trả về thông báo lỗi nếu thất bại.
+                    \item \textbf{Xóa Token Cũ}: Xóa các token cũ từ \texttt{localStorage} trước khi đăng nhập để tránh xung đột.
+                    \item \textbf{Hỗ Trợ Xác Thực Cookie}: Cấu hình \texttt{withCredentials} cho phép gửi cookie xác thực.
+                \end{itemize}
+    \section{APP}
+        \hspace*{0.6cm}Là thành phần chính của ứng dụng, chịu trách nhiệm tổ chức giao diện, quản lý trạng thái toàn cục (người dùng, chế độ giao diện, sidebar), và định tuyến các trang. Nó tích hợp Material-UI để tạo giao diện, \texttt{react-router-dom} cho định tuyến, và \texttt{SnackbarProvider} cho thông báo đồng thời cũng kiểm tra xác thực người dùng khi khởi động.
+        \subsection{Import}
+            \hspace*{0.6cm}Các thư viện và thành phần được nhập:
+            \begin{lstlisting}
+    import React, { useState, useEffect } from 'react';
+    import { Routes, Route, Navigate } from 'react-router-dom';
+    import { Box, Toolbar, CssBaseline, ThemeProvider } from '@mui/material';
+    import { getTheme } from './theme';
+    import Header from './components/Header';
+    import Sidebar from './components/Sidebar';
+    import StatusPage from './pages/StatusPage';
+    import DevicePage from './pages/DevicePage';
+    import SettingPage from './pages/SettingPage';
+    import { SnackbarProvider } from './context/SnackbarContext';
+    import axios from 'axios';
+            \end{lstlisting}
+            \begin{itemize}
+                \item \texttt{React}, \texttt{useState}, \texttt{useEffect}: Quản lý trạng thái và vòng đời component.
+                \item \texttt{react-router-dom}: \texttt{Routes}, \texttt{Route}, \texttt{Navigate} cho định tuyến.
+                \item \texttt{Material-UI}: \texttt{Box}, \texttt{Toolbar}, \texttt{CssBaseline}, \texttt{ThemeProvider} cho giao diện và theme.
+                \item \texttt{getTheme}: Hàm tùy chỉnh để tạo theme dựa trên chế độ sáng/tối.
+                \item \texttt{Header}, \texttt{Sidebar}, \texttt{StatusPage}, \texttt{DevicePage}, \texttt{SettingPage}: Các component con.
+                \item \texttt{SnackbarProvider}: Cung cấp ngữ cảnh thông báo.
+                \item \texttt{axios}: Gửi yêu cầu HTTP tới API.
+            \end{itemize}
+
+        \subsection{API URL}
+            \hspace*{0.6cm}Định nghĩa URL API:
+            \begin{lstlisting}
+            const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+            \end{lstlisting}
+            \begin{itemize}
+                \item \texttt{API\_URL}: Lấy từ biến môi trường hoặc mặc định \texttt{http://localhost:5000}.
+            \end{itemize}
+
+        \subsection{Component App}
+            \hspace*{0.6cm}Component quản lý trạng thái toàn cục:
+            \begin{lstlisting}
+    const App = () => {
+        const [sidebarOpen, setSidebarOpen] = useState(true);
+        const [mode, setMode] = useState('light');
+        const [user, setUser] = useState(() => {
+            const savedUser = localStorage.getItem('user');
+            return savedUser ? JSON.parse(savedUser) : null;
+        });
+        const [openLogin, setOpenLogin] = useState(false);
+            \end{lstlisting}
+            \begin{itemize}
+                \item \texttt{sidebarOpen}: Trạng thái mở/rút gọn của sidebar.
+                \item \texttt{mode}: Chế độ giao diện (\texttt{light} hoặc \texttt{dark}).
+                \item \texttt{user}: Thông tin người dùng, khởi tạo từ \texttt{localStorage} hoặc \texttt{null}.
+                \item \texttt{openLogin}: Điều khiển hiển thị hộp thoại đăng nhập.
+            \end{itemize}
+
+        \subsection{Kiểm Tra Xác Thực}
+            \hspace*{0.6cm}Sử dụng \texttt{useEffect} để kiểm tra token:
+            \begin{lstlisting}
+    useEffect(() => {
+        const verifyToken = async () => {
+            try {
+                const response = await axios.get(`${API_URL}/api/users/verify-token`, {
+                    withCredentials: true,
+                });
+                if (!response.data.valid) {
+                    setUser(null);
+                    localStorage.removeItem('user');
+                }
+            } catch (error) {
+                console.error("Error verifying token:", error);
+                setUser(null);
+                localStorage.removeItem('user');
+            }
+        };
+
+        if (user) {
+            verifyToken();
+        }
+    }, []);
+            \end{lstlisting}
+            \begin{itemize}
+                \item Gửi yêu cầu GET tới \texttt{/api/users/verify-token} để kiểm tra token.
+                \item Nếu token không hợp lệ hoặc có lỗi, xóa \texttt{user} và \texttt{localStorage}.
+                \item Chỉ chạy khi có \texttt{user}, với mảng phụ thuộc rỗng (\texttt{[]}) để chạy một lần khi mount.
+            \end{itemize}
+
+        \subsection{Cấu Trúc JSX}
+            \hspace*{0.6cm}Giao diện và định tuyến của ứng dụng:
+            \begin{lstlisting}
+return (
+    <ThemeProvider theme={getTheme(mode)}>
+        <SnackbarProvider>
+            <CssBaseline />
+            <Box sx={{ display: 'flex' }}>
+                <Sidebar open={sidebarOpen} />
+                <Box component="main" sx={{ flexGrow: 1, minHeight: '100vh' }}>
+                    <Header
+                        onToggleSidebar={() => setSidebarOpen(prev => !prev)}
+                        user={user}
+                        setUser={setUser}
+                        openLogin={openLogin}
+                        setOpenLogin={setOpenLogin}
+                    />
+                    <Toolbar />
+                    <Box sx={{ p: 3 }}>
+                        <Routes>
+                            <Route
+                                path="/status"
+                                element={user ? <StatusPage user={user} /> : <Navigate to="/" />}
+                            />
+                            <Route
+                                path="/device"
+                                element={user ? <DevicePage user={user} /> : <Navigate to="/" />}
+                            />
+                            <Route
+                                path="/setting"
+                                element={<SettingPage mode={mode} setMode={setMode} />}
+                            />
+                            <Route path="/" element={<Navigate to="/status" />} />
+                            <Route path="*" element={<Navigate to="/status" />} />
+                        </Routes>
+                    </Box>
+                </Box>
+            </Box>
+        </SnackbarProvider>
+    </ThemeProvider>
+);
+            \end{lstlisting}
+            \begin{itemize}
+                \item \texttt{ThemeProvider}: Áp dụng theme từ \texttt{getTheme(mode)}.
+                \item \texttt{SnackbarProvider}: Bao bọc ứng dụng để cung cấp ngữ cảnh thông báo.
+                \item \texttt{CssBaseline}: Đặt lại kiểu CSS mặc định của Material-UI.
+                \item \texttt{Box} (container chính): Sử dụng flexbox để sắp xếp \texttt{Sidebar} và nội dung chính.
+                \item \texttt{Sidebar}: Thanh điều hướng bên, điều khiển bởi \texttt{sidebarOpen}.
+                \item \texttt{Box} (nội dung chính): Chứa \texttt{Header}, \texttt{Toolbar} (khoảng trống), và các trang.
+                \item \texttt{Header}: Thanh điều hướng trên, truyền các prop để quản lý sidebar và người dùng.
+                \item \texttt{Routes}: Định tuyến các trang:
+                \begin{itemize}
+                    \item \texttt{/status}: Hiển thị \texttt{StatusPage} nếu có \texttt{user}, ngược lại chuyển hướng tới \texttt{/}.
+                    \item \texttt{/device}: Hiển thị \texttt{DevicePage} nếu có \texttt{user}, ngược lại chuyển hướng tới \texttt{/}.
+                    \item \texttt{/setting}: Hiển thị \texttt{SettingPage} để chuyển đổi chế độ sáng/tối.
+                    \item \texttt{/} và \texttt{*}: Chuyển hướng tới \texttt{/status}.
+                \end{itemize}
+            \end{itemize}
+
+        \subsection{Export}
+            \hspace*{0.6cm}Component được xuất:
+            \begin{lstlisting}
+    export default App;
+            \end{lstlisting}
+
+        \subsection{Chức Năng Chính}
+            \begin{itemize}
+                \item \textbf{Quản Lý Giao Diện}: Sử dụng Material-UI để tổ chức bố cục với sidebar, header và nội dung chính, hỗ trợ chế độ sáng/tối qua \texttt{mode}.
+                \item \textbf{Xác Thực Người Dùng}: Kiểm tra token khi khởi động, tự động đăng xuất nếu token không hợp lệ.
+                \item \textbf{Định Tuyến Trang}: Sử dụng \texttt{react-router-dom} để điều hướng giữa các trang \texttt{StatusPage}, \texttt{DevicePage}, \texttt{SettingPage}, với bảo vệ tuyến đường dựa trên trạng thái \texttt{user}.
+                \item \textbf{Quản Lý Trạng Thái Toàn Cục}: Quản lý \texttt{user}, \texttt{sidebarOpen}, \texttt{mode}, và \texttt{openLogin}.
+                \item \textbf{Hiển Thị Thông Báo}: Tích hợp \texttt{SnackbarProvider} để hiển thị thông báo trong toàn ứng dụng.
+            \end{itemize}
+
+                
+
+           
+                
+                
+    
+                            

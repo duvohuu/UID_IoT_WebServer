@@ -1,10 +1,12 @@
+import React, { useEffect, useState } from "react";
+import io from "socket.io-client";
+
 const DevicePage = () => {
     return (
-        <div>
-        <h1>Device Control Page</h1>
-        {/* Add your device control components here */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "20px" }}>
+            <h1>Device Page</h1>
         </div>
     );
-}
+};
 
 export default DevicePage;
