@@ -1,144 +1,184 @@
-    import { Box, Typography, List, ListItem, ListItemText } from "@mui/material";
-    import { useTheme } from "@mui/material/styles";
-    import React, { useEffect, useState } from "react";
-    import axios from "axios";
-    import io from "socket.io-client";
-    import { useNavigate } from "react-router-dom";
-    import { useSnackbar } from '../context/SnackbarContext';
+import { Box, Container, useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import StatusHeader from '../components/status/StatusHeader.jsx';
+import StatusStatsCards from '../components/status/StatusStatsCards.jsx';
+import StatusMachinesGrid from '../components/status/StatusMachinesGrid.jsx';
+import StatusFooter from '../components/status/StatusFooter.jsx';
+import { calculateMachineStats } from '../utils/machineUtils';
+import { getMachines } from '../api/machineAPI';
+import io from "socket.io-client";
 
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-    const getToken = () => {
-        return document.cookie.split("; ").find(row => row.startsWith("authToken="))?.split("=")[1] || null;
-    };
+const StatusPage = ({ user }) => {
+    const theme = useTheme();
+    const navigate = useNavigate();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const [machines, setMachines] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    const socket = io(API_URL, {
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        transports: ["websocket", "polling"],
-        auth: { token: getToken() }
-    });
+    const [socket, setSocket] = useState(null);
 
-    const StatusPage = ({ user }) => {
-        const theme = useTheme();
-        const navigate = useNavigate();
-        const [devices, setDevices] = useState([]);
-        const [error, setError] = useState(null);
-        const [loading, setLoading] = useState(true);
-        const { showSnackbar } = useSnackbar();
+    const defaultMachines = [
+        {
+            id: 'MACHINE_001',
+            name: 'Salt Processing',
+            type: 'Salt Processing',
+            location: 'Production Line A',
+            ip: '192.168.1.8',
+            isConnected: false,
+            status: 'offline',
+            lastUpdate: null,
+            uptime: null,
+            parameters: null
+        },
+        {
+            id: 'MACHINE_002', 
+            name: 'Packaging',
+            type: 'Packaging',
+            location: 'Production Line B',
+            ip: '192.168.1.101',
+            isConnected: false,
+            status: 'offline',
+            lastUpdate: null,
+            uptime: null,
+            parameters: null
+        },
+        {
+            id: 'MACHINE_003',
+            name: 'Quality Control',
+            type: 'Quality Control',
+            location: 'Quality Lab',
+            ip: '192.168.1.103 쏴',
+            isConnected: false,
+            status: 'offline',
+            lastUpdate: null,
+            uptime: null,
+            parameters: null
+        },
+    ];
 
-        useEffect(() => {
-            if (!user) {
-                navigate("/login");
-                return;
-            }
+    useEffect(() => {
+        if (!user) {
+            navigate("/login");
+            return;
+        }
 
-            const fetchDevices = async () => {
-                try {
-                    console.log("Fetching devices from API:", `${API_URL}/api/devices`);
-                    const response = await axios.get(`${API_URL}/api/devices`, {
-                        withCredentials: true,
-                    });
-                    console.log("Devices fetched:", response.data);
-                    setDevices(response.data);
-                    setLoading(false);
-                } catch (error) {
-                    const errorMsg = error.response?.data?.message || error.message;
-                    console.error("Lỗi khi lấy thiết bị:", errorMsg);
-                    setError(`Lỗi khi lấy thiết bị: ${errorMsg}`);
-                    showSnackbar(`Lỗi khi lấy thiết bị: ${errorMsg}`, "error");
-                    setLoading(false);
-                    if (errorMsg.includes("Chưa đăng nhập") || errorMsg.includes("Token không hợp lệ")) {
-                        navigate("/login");
-                    }
-                }
-            };
-            fetchDevices();
+        const newSocket = io(API_URL, {
+            withCredentials: true,
+            transports: ["websocket", "polling"],
+        });
+        setSocket(newSocket);
 
-            socket.on("connect", () => {
-                console.log("Đã kết nối Socket.IO từ Frontend! ID:", socket.id);
-            });
-            socket.on("deviceUpdate", (updatedDevice) => {
-                console.log("Nhận deviceUpdate:", updatedDevice);
-                try {
-                    if (!updatedDevice || !updatedDevice.name) {
-                        console.warn("Dữ liệu deviceUpdate không hợp lệ:", updatedDevice);
-                        return;
-                    }
-                    setDevices((prev) => {
-                        const existingDevice = prev.find((device) => device.name === updatedDevice.name);
-                        if (existingDevice) {
-                            return prev.map((device) =>
-                                device.name === updatedDevice.name ? updatedDevice : device
-                            );
+        const fetchMachines = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                
+                const result = await getMachines();
+                
+                if (result.success && result.data && result.data.length > 0) {
+                    const mergedMachines = defaultMachines.map(defaultMachine => {
+                        const apiMachine = result.data.find(machine => 
+                            machine.id === defaultMachine.id || machine.ip === defaultMachine.ip
+                        );
+                        if (apiMachine) {
+                            return {
+                                ...defaultMachine,
+                                ...apiMachine,
+                                isConnected: true,
+                                status: apiMachine.status || 'online',
+                                lastUpdate: apiMachine.lastUpdate || new Date().toISOString()
+                            };
                         }
-                        return [...prev, updatedDevice];
+                        return {
+                            ...defaultMachine,
+                            isConnected: false,
+                            status: 'offline',
+                            lastUpdate: null,
+                            uptime: null,
+                            parameters: null
+                        };
                     });
-                } catch (error) {
-                    console.error("Lỗi xử lý deviceUpdate:", error.message);
-                    setError(`Lỗi xử lý deviceUpdate: ${error.message}`);
-                    showSnackbar(`Lỗi xử lý deviceUpdate: ${error.message}`, "error");
+                    const newMachines = result.data.filter(apiMachine => 
+                        !defaultMachines.some(defaultMachine => 
+                            defaultMachine.id === apiMachine.id || defaultMachine.ip === apiMachine.ip
+                        )
+                    ).map(apiMachine => ({
+                        ...apiMachine,
+                        isConnected: true,
+                        status: apiMachine.status || 'online'
+                    }));
+                    setMachines([...mergedMachines, ...newMachines]);
+                } else {
+                    console.warn("Không có dữ liệu từ API hoặc lỗi kết nối:", result.message);
+                    setMachines(defaultMachines);
+                    setError("Không thể kết nối đến server. Hiển thị danh sách máy mặc định.");
                 }
-            });
-            socket.on("connect_error", (err) => {
-                console.error("Socket.IO lỗi kết nối:", err.message);
-                setError(`Socket.IO lỗi kết nối: ${err.message}`);
-                showSnackbar(`Socket.IO lỗi kết nối: ${err.message}`, "error");
-                navigate("/login");
-            });
+            } catch (error) {
+                console.error("Lỗi lấy danh sách máy:", error);
+                setMachines(defaultMachines);
+                setError("Lỗi kết nối. Hiển thị danh sách máy mặc định.");
+            } finally {
+                setLoading(false);
+            }
+        };
 
-            return () => {
-                socket.off("deviceUpdate");
-                socket.off("connect");
-                socket.off("connect_error");
-                socket.disconnect();
-            };
-        }, [user, navigate]);
+        fetchMachines();
 
-        return (
-            <Box sx={{ p: 3, minHeight: "100vh", bgcolor: "background.default" }}>
-                <Typography variant="h4" sx={{ color: "text.primary", mb: 2 }}>
-                    Device Status
-                </Typography>
-                {loading && (
-                <Typography sx={{ color: "text.secondary" }}>
-                    Đang tải thiết bị...
-                </Typography>
-                )}
-                {error && (
-                <Typography sx={{ color: "error.main" }}>
-                    {error}
-                </Typography>
-                )}
-                {devices.length === 0 && !loading ? (
-                <Typography sx={{ color: "text.secondary" }}>
-                    Không có thiết bị nào.
-                </Typography>
-                ) : (
-                    <List sx={{ p: 0 }}>
-                        {devices.map((device, index) => (
-                            <ListItem
-                                key={device.name || index}
-                                sx={{
-                                    my: 1,
-                                    p: 1.5,
-                                    bgcolor: "background.paper",
-                                    borderRadius: "5px",
-                                    color: "text.primary"
-                                }}
-                            >
-                                <ListItemText
-                                    primary={`${device.name} - Trạng thái: ${device.status} (Cập nhật: ${
-                                        device.updatedAt ? new Date(device.updatedAt).toLocaleString() : "N/A"
-                                    })`}
-                                />
-                            </ListItem>
-                        ))}
-                    </List>
-                )}  
-            </Box>
-        );
+        newSocket.on("machineStatusUpdate", (update) => {
+            setMachines((prevMachines) =>
+                prevMachines.map((machine) =>
+                    machine.ip === update.ip
+                        ? {
+                              ...machine,
+                              isConnected: update.isConnected,
+                              status: update.status,
+                              lastUpdate: update.lastUpdate,
+                          }
+                        : machine
+                )
+            );
+        });
+
+        return () => {
+            newSocket.disconnect();
+        };
+    }, [user, navigate]);
+
+    const stats = calculateMachineStats(machines);
+
+    const handleMachineClick = (machine) => {
+        if (!machine.isConnected) {
+            alert('Máy chưa kết连接. Không thể xem chi tiết.');
+            return;
+        }
+        navigate(`/machine/${machine.id}`, { state: { machine, fromStatus: true } });
     };
 
-    export default StatusPage;
+    return (
+        <Box 
+            sx={{ 
+                minHeight: "100vh",
+                background: `linear-gradient(135deg, ${theme.palette.primary.main}15 0%, ${theme.palette.secondary.main}10 100%)`,
+                swirl: 4
+            }}
+        >
+            <Container maxWidth="lg">
+                <StatusHeader isMobile={isMobile} error={error} />
+                <StatusStatsCards stats={stats} />
+                <StatusMachinesGrid 
+                    machines={machines}
+                    loading={loading}
+                    onMachineClick={handleMachineClick}
+                />
+                <StatusFooter />
+            </Container>
+        </Box>
+    );
+};
+
+export default StatusPage;

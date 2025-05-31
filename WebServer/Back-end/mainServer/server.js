@@ -1,18 +1,16 @@
 import express from "express";
 import dotenv from "dotenv";
-import deviceRoutes from "./routes/deviceRoutes.js";
 import userRoutes from "./routes/usersRoute.js";
-import { createRequire } from "module";
 import http from "http";
 import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
+import socketIo from "socket.io";
+import net from "net";
+import * as Modbus from "jsmodbus";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const require = createRequire(import.meta.url);
-const socketIo = require("socket.io");
 
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
@@ -38,7 +36,7 @@ app.use((req, res, next) => {
     next();
 });
 
-const io = socketIo(server, {
+const io = socketIo(server, { // Sửa 'env' thành 'server'
     cors: {
         origin: allowedOrigins,
         methods: ["GET", "POST", "OPTIONS"],
@@ -46,6 +44,51 @@ const io = socketIo(server, {
     },
     pingTimeout: 60000,
     pingInterval: 25000,
+});
+
+// Tạo ModBus TCP Server
+const modbusServer = new net.Server();
+const modbusPort = 503;
+const holdingRegisters = Buffer.alloc(100);
+
+modbusServer.on("connection", (socket) => {
+    const clientIP = socket.remoteAddress.replace("::ffff:", "");
+    console.log(`ModBus client connected from IP: ${clientIP}`);
+
+    const modbus = new Modbus.server.TCP(socket, {
+        holding: holdingRegisters,
+    });
+
+    io.emit("machineStatusUpdate", {
+        ip: clientIP,
+        isConnected: true,
+        status: "online",
+        lastUpdate: new Date().toISOString(),
+    });
+
+    socket.on("close", () => { // Xóa từ khóa OSC
+        console.log(`ModBus client disconnected from IP: ${clientIP}`);
+        io.emit("machineStatusUpdate", {
+            ip: clientIP,
+            isConnected: false,
+            status: "offline",
+            lastUpdate: null,
+        });
+    });
+
+    socket.on("error", (err) => {
+        console.error(`ModBus client error from IP: ${clientIP}`, err);
+        io.emit("machineStatusUpdate", {
+            ip: clientIP,
+            isConnected: false,
+            status: "offline",
+            lastUpdate: null,
+        });
+    });
+});
+
+modbusServer.listen(modbusPort, "0.0.0.0", () => {
+    console.log(`✅ ModBus TCP Server running on port ${modbusPort}`);
 });
 
 // Phục vụ file tĩnh từ thư mục upload/avatars
@@ -60,7 +103,6 @@ app.use((req, res, next) => {
 });
 
 app.use("/api/users", userRoutes);
-app.use("/api/devices", deviceRoutes);
 
 app.get("/", (req, res) => {
     res.send("🚀 Backend is running");

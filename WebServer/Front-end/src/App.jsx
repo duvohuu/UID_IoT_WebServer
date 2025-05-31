@@ -5,7 +5,6 @@ import { getTheme } from './theme';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import StatusPage from './pages/StatusPage';
-import DevicePage from './pages/DevicePage';
 import SettingPage from './pages/SettingPage';
 import { SnackbarProvider } from './context/SnackbarContext';
 import axios from 'axios'; 
@@ -66,10 +65,6 @@ const App = () => {
                                 <Route
                                     path="/status"
                                     element={user ? <StatusPage user={user} /> : <Navigate to="/" />}
-                                />
-                                <Route
-                                    path="/device"
-                                    element={user ? <DevicePage user={user} /> : <Navigate to="/" />}
                                 />
                                 <Route
                                     path="/setting"
