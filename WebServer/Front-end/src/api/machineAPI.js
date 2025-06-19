@@ -2,7 +2,19 @@ import axios from "axios";
 
 axios.defaults.withCredentials = true;
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"; // Kết nối mainServer
+const getApiUrl = () => {
+    // If VITE_API_URL is set, use it
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
+    }
+    
+    // Otherwise, use same-origin with port 5000
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    return `${protocol}//${hostname}:5000`;
+};
+
+const API_URL = getApiUrl();
 
 // Lấy danh sách tất cả máy từ mainServer
 const getMachines = async () => {

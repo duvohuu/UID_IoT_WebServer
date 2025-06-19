@@ -9,6 +9,7 @@ import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 import axios from "axios"; 
+import os from "os";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,16 +22,39 @@ const app = express();
 const server = http.createServer(app);
 const DB_SERVER_URL = process.env.DB_SERVER_URL || "http://localhost:5001";
 
-// Danh sách các origin được phép
-const allowedOrigins = [
-    "http://localhost:5173",
-    "http://192.168.1.8:5173",
-    "http://localhost:3000",
-    "http://192.168.61.208:5173",
-    "http://192.168.1.2:5173"
-];
+const getAllLocalIPs = () => {
+    const interfaces = os.networkInterfaces();
+    const ips = ['localhost', '127.0.0.1'];
+    
+    Object.keys(interfaces).forEach(interfaceName => {
+        interfaces[interfaceName].forEach(iface => {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                ips.push(iface.address);
+            }
+        });
+    });
+    
+    return ips;
+};
 
-// ✅ SỬA: CORS middleware cải thiện cho DELETE requests
+
+const generateAllowedOrigins = () => {
+    const ips = getAllLocalIPs();
+    const ports = [5173]; 
+    const origins = [];
+    
+    ips.forEach(ip => {
+        ports.forEach(port => {
+            origins.push(`http://${ip}:${port}`);
+        });
+    });
+    
+    console.log('🌐 Allowed origins:', origins);
+    return origins;
+};
+
+const allowedOrigins = generateAllowedOrigins();
+
 app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (allowedOrigins.includes(origin)) {
@@ -41,7 +65,6 @@ app.use((req, res, next) => {
         res.setHeader("Access-Control-Expose-Headers", "Set-Cookie");
     }
     
-    // ✅ QUAN TRỌNG: Xử lý preflight requests
     if (req.method === 'OPTIONS') {
         console.log(`🔍 OPTIONS request for: ${req.url}`);
         res.status(200).end();
@@ -51,17 +74,17 @@ app.use((req, res, next) => {
     next();
 });
 
+
 const io = socketIo(server, {
     cors: {
         origin: allowedOrigins,
-        methods: ["GET", "POST", "DELETE", "OPTIONS"], // ✅ THÊM DELETE
+        methods: ["GET", "POST", "DELETE", "OPTIONS"], 
         credentials: true,
     },
     pingTimeout: 60000,
     pingInterval: 25000,
 });
 
-// ✅ THÊM: Setup io trong app để routes có thể sử dụng
 app.set('io', io);
 
 // =================================================================
@@ -73,7 +96,6 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use((req, res, next) => {
-    console.log(`Nhận yêu cầu: ${req.method} ${req.url}`);
     next();
 });
 app.use("/api/work-shifts", workShiftRoutes)
@@ -83,23 +105,18 @@ app.use("/api/work-shifts", workShiftRoutes);
 
 app.post("/api/internal/machine-update", (req, res) => {
     const machineUpdate = req.body;
-    // console.log(`📡 Received machine update from dbServer: ${machineUpdate.name} - ${machineUpdate.status}`);
     io.emit("machineStatusUpdate", machineUpdate);
-    // console.log(`🔄 Broadcasted to Frontend: ${machineUpdate.name} is ${machineUpdate.status}`);
     res.json({ success: true, message: "Machine update broadcasted" });
 });
 
 app.post("/api/internal/shift-completed", (req, res) => {
     const shiftData = req.body;
-    // console.log(`📡 Received shift completion from dbServer: ${shiftData.shiftId}`);
     io.emit("workShiftCompleted", shiftData);
-    console.log(`🔄 Broadcasted shift completion to Frontend`);
     res.json({ success: true, message: "Shift completion broadcasted" });
 });
 
 app.post("/api/internal/shift-started", (req, res) => {
     const shiftData = req.body;
-    // console.log(`📡 Received shift start from dbServer: ${shiftData.shiftId}`);
     
     // Broadcast to Frontend via Socket.IO
     io.emit("workShiftUpdate", {
@@ -108,8 +125,62 @@ app.post("/api/internal/shift-started", (req, res) => {
         timestamp: new Date()
     });
     
-    // console.log(`🔄 Broadcasted shift start to Frontend`);
     res.json({ success: true, message: "Shift start broadcasted" });
+});
+
+app.post("/api/internal/shift-status-changed", (req, res) => {
+    const shiftStatusData = req.body;
+    console.log(`📡 Received shift status change: ${shiftStatusData.shiftId} -> ${shiftStatusData.status}`);
+    
+    // Broadcast to Frontend via Socket.IO
+    io.emit("shiftStatusChanged", {
+        shiftId: shiftStatusData.shiftId,
+        machineId: shiftStatusData.machineId,
+        status: shiftStatusData.status,
+        eventType: shiftStatusData.eventType,
+        timestamp: shiftStatusData.timestamp
+    });
+    
+    res.json({ success: true, message: "Shift status change broadcasted" });
+});
+
+app.post("/api/internal/shift-status-changed", async (req, res) => {
+    try {
+        const { 
+            shiftId, 
+            machineId, 
+            machineName,
+            status, 
+            endTime, 
+            duration, 
+            efficiency, 
+            totalWeightFilled,
+            totalBottlesProduced,
+            timestamp 
+        } = req.body;
+        
+        console.log(`📡 Received shift status change: ${shiftId} (${machineName}) -> ${status}`);
+        
+        // Broadcast tới Frontend qua Socket.IO
+        io.emit("shiftStatusChanged", {
+            shiftId,
+            machineId,
+            machineName,
+            status,
+            endTime,
+            duration,
+            efficiency,
+            totalWeightFilled,
+            totalBottlesProduced,
+            timestamp: timestamp || new Date().toISOString()
+        });
+        
+        res.json({ success: true, message: "Shift status change broadcasted" });
+        
+    } catch (error) {
+        console.error("❌ Error handling shift status change:", error.message);
+        res.status(500).json({ message: "Error handling shift status change" });
+    }
 });
 
 app.get("/", (req, res) => {
@@ -121,9 +192,7 @@ app.get("/", (req, res) => {
 });
 
 
-io.on("connection", (socket) => {
-    // console.log("Frontend client connected:", socket.id);
-    
+io.on("connection", (socket) => {    
     // Gửi trạng thái hiện tại của tất cả machines cho client mới
     fetchAndSendCurrentMachineStatus(socket);
     
@@ -165,7 +234,6 @@ async function fetchAndSendCurrentMachineStatus(socket) {
             });
         });
         
-        // console.log(`📤 Sent current status of ${machines.length} machines to new client`);
     } catch (error) {
         // console.error("❌ Error fetching current machine status:", error.message);
     }
@@ -174,4 +242,7 @@ async function fetchAndSendCurrentMachineStatus(socket) {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", () => {
     console.log(`✅ Main Server running at http://0.0.0.0:${PORT}`);
+    getAllLocalIPs().forEach(ip => {
+        console.log(`   http://${ip}:${PORT}`);
+    });
 });

@@ -8,8 +8,11 @@
     "frontend": "cd Front-end && npm run dev",
     "dbserver": "cd Back-end/dbServer && npm run dev",
     "mainserver": "cd Back-end/mainServer && npm run dev",
-    "install-all": "npm install && cd Front-end && npm install && cd ../Back-end/dbServer && npm install && cd ../mainServer && npm install",
-    "build": "cd Front-end && npm run build"
+    "install-all": "npm install && cd Front-end && npm install && cd Back-end/dbServer && npm install && cd ../mainServer && npm install",
+    "build": "cd Front-end && npm run build",
+    "update-ip": "node Back-end/dbServer/scripts/update-ip.js",
+    "dev:auto": "npm run update-ip && npm run dev",
+    "start:auto": "npm run update-ip && npm run dev"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

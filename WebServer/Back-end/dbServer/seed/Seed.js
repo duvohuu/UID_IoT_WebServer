@@ -40,10 +40,10 @@ console.log(`✅ Created user: ${admin.username} (${admin.email}) - Role: ${admi
 console.log('🔧 Creating machine...');
 const machine = await Machine.create({
     machineId: 'MACHINE_001',
-    name: 'Máy chiết muối',
-    type: 'Salt Filling Machine',
-    location: 'IUD Lab',
-    ip: '192.168.1.200',
+    name: 'Máy Test',
+    type: 'Test Machine',
+    location: 'UID Lab',
+    ip: '127.0.0.1',
     port: 502,
     slaveId: 1,
     userId: admin.userId,      

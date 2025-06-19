@@ -1,4 +1,3 @@
-// components/common/MachineCardSkeleton.jsx
 import { Box, Card, CardContent, Grid } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 

@@ -2,6 +2,16 @@ import axios from "axios";
 
 axios.defaults.withCredentials = true;
 
+const getApiUrl = () => {
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
+    }
+    
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    return `${protocol}//${hostname}:5000`;
+};
+
 const loginUser = async (email, password) => {
     try {
         // Clear old tokens

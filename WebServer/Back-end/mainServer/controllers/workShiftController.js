@@ -16,9 +16,16 @@ export const getWorkShifts = async (req, res) => {
         
         let queryParams = { page, limit };
         
-        // Role-based filtering
+        // Role-based filtering - SỬA LOGIC NÀY
         if (currentUser.role !== 'admin') {
-            queryParams.userId = currentUser.userId;
+            // Thay vì filter theo userId, filter theo machines user được phân quyền
+            if (machineId) {
+                // Kiểm tra user có quyền truy cập machine này không
+                queryParams.machineId = machineId;
+            } else {
+                // Lấy danh sách machines user được phân quyền
+                queryParams.allowedMachines = currentUser.allowedMachines; // hoặc logic phân quyền khác
+            }
         }
         
         if (machineId) queryParams.machineId = machineId;
@@ -55,7 +62,6 @@ export const getWorkShiftById = async (req, res) => {
         const response = await axios.get(`${DB_SERVER_URL}/db/internal/work-shifts/${shiftId}`);
         const workShift = response.data;
         
-        // Check access permission
         if (currentUser.role !== 'admin' && workShift.userId !== currentUser.userId) {
             return res.status(403).json({ message: "Access denied - Not your work shift" });
         }
@@ -89,7 +95,6 @@ export const getWorkShiftStats = async (req, res) => {
             queryParams.userId = currentUser.userId;
         }
         
-        // ✅ SỬA: Gọi đúng endpoint
         const response = await axios.get(`${DB_SERVER_URL}/db/internal/work-shifts/stats`, {
             params: queryParams
         });

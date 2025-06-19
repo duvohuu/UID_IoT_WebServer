@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box, Toolbar, CssBaseline, ThemeProvider } from '@mui/material';
 import { getTheme } from './theme';
-import Header from './components/Header';
-import Sidebar from './components/Sidebar';
+import Header from './components/layout/Header';
+import Sidebar from './components/layout/Sidebar';
 import StatusPage from './pages/StatusPage';
 import SettingPage from './pages/SettingPage';
-import MachineDetail from './components/status/MachineDetail'; 
+import MachineDetailPage from './pages/MachineDetailPage';
 import { SnackbarProvider } from './context/SnackbarContext';
 import axios from 'axios'; 
 
@@ -82,9 +82,8 @@ const App = () => {
                 <CssBaseline />
                 <Box sx={{ display: 'flex' }}>
                     <Sidebar open={sidebarOpen} />
-                    {/* ✅ Truyền đúng props theo Header component */}
                     <Header 
-                        onToggleSidebar={handleToggleSidebar}  // ✅ Đúng tên prop
+                        onToggleSidebar={handleToggleSidebar}  
                         user={user}
                         setUser={setUser}
                     />
@@ -94,7 +93,8 @@ const App = () => {
                             <Route path="/" element={<Navigate to="/status" replace />} />
                             <Route path="/status" element={<StatusPage user={user} />} />
                             <Route path="/setting" element={<SettingPage user={user} mode={mode} setMode={setMode} />} />
-                            <Route path="/machine/:ip" element={<MachineDetail user={user} />} />
+                            <Route path="/machine/:ip" element={<MachineDetailPage user={user} />} />
+                            <Route path="/" element={<Navigate to="/status" replace />} />
                         </Routes>
                     </Box>
                 </Box>

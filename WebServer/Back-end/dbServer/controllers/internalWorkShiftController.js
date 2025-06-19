@@ -6,12 +6,13 @@ export const getWorkShifts = async (req, res) => {
         const { page = 1, limit = 20, machineId, status, userId, sortBy = 'shiftId', sortOrder = 'asc' } = req.query;
         
         let query = {};
-        if (machineId) query.machineId = machineId;
+        if (machineId) query.machineId = machineId; 
         if (status) query.status = status;
         if (userId) query.userId = userId;
 
-        let sortQuery = {};
+        console.log(`📊 MongoDB query:`, query);
 
+        let sortQuery = {};
         if (sortBy == 'shiftId') {
             sortQuery = { 
                 machineNumber: sortOrder === 'asc' ? 1 : -1,
@@ -24,20 +25,29 @@ export const getWorkShifts = async (req, res) => {
         }
         
         const shifts = await WorkShift.find(query)
-            .populate('machineId', 'name type location ip machineId')
+            // ✅ SỬA: Populate với machineId field
+            .populate({
+                path: 'machineId',
+                select: 'name type location ip machineId',
+                match: { machineId: { $exists: true } }
+            })
             .sort(sortQuery) 
             .limit(limit * 1)
             .skip((page - 1) * limit)
             .lean();
         
+        console.log(`📊 Found ${shifts.length} shifts`);
+        
         const total = await WorkShift.countDocuments(query);
         
-        res.json({
+        const response = {
             shifts,
             totalPages: Math.ceil(total / limit),
             currentPage: parseInt(page),
             totalShifts: total
-        });
+        };
+
+        res.json(response);
         
     } catch (error) {
         console.error('❌ Internal get work shifts error:', error);
@@ -95,7 +105,6 @@ export const getWorkShiftStats = async (req, res) => {
                 $group: {
                     _id: null,
                     totalShifts: { $sum: 1 },
-                    totalBottles: { $sum: "$totalBottlesProduced" },
                     totalWeight: { $sum: "$totalWeightFilled" },
                     avgDuration: { $avg: "$duration" },
                     totalDuration: { $sum: "$duration" }
@@ -105,7 +114,6 @@ export const getWorkShiftStats = async (req, res) => {
         
         const stats = generalStats[0] || {
             totalShifts: 0,
-            totalBottles: 0,
             totalWeight: 0,
             avgDuration: 0,
             totalDuration: 0

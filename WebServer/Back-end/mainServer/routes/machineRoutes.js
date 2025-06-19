@@ -12,10 +12,10 @@ import {
 
 const router = express.Router();
 
-router.use((req, res, next) => {
-    console.log(`🛣️ Machine Route: ${req.method} ${req.path}`);
-    next();
-});
+// router.use((req, res, next) => {
+//     console.log(`🛣️ Machine Route: ${req.method} ${req.path}`);
+//     next();
+// });
 
 router.get("/", authenticateToken, getMachines);
 router.post("/", authenticateToken, createMachine);       

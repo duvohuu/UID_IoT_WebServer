@@ -20,42 +20,44 @@ class ModbusService {
         
         this.isPolling = true;
         
-        // Delay nhỏ trước khi bắt đầu quét lần đầu
         setTimeout(() => {
             console.log('🔄 Starting first scan cycle...');
             this.scanAllMachines();
         }, 2000);
         
-        // Thiết lập interval quét định kỳ
         setInterval(() => {
             this.scanAllMachines();
         }, MODBUS_CONFIG.scanInterval);
         
-        console.log('✅ Modbus polling system initialized');
+        console.log('Modbus polling system initialized');
     }
 
     async scanAllMachines() {
         try {
-            console.log('🔍 Starting scan cycle for all machines...');
+            console.log('Starting scan cycle for all machines...');
             const allMachines = await Machine.find({});
             
             if (allMachines.length === 0) {
-                console.log('📭 No machines found to scan');
+                console.log('No machines found to scan');
                 return;
             }
 
-            console.log(`🔄 Scanning ${allMachines.length} machines...`);
-            
+            console.log(`Scanning ${allMachines.length} machines...`);
             for (let i = 0; i < allMachines.length; i++) {
                 const machine = allMachines[i];
                 const wasOnline = machine.isConnected;
                 
-                console.log(`📡 [${i+1}/${allMachines.length}] Scanning ${machine.name} (${machine.ip}) - Current: ${machine.status}`);
+                console.log(`[${i+1}/${allMachines.length}] Scanning ${machine.name} (${machine.ip}) - Current: ${machine.status}`);
                 
                 await this.readMachineData(machine);
                 
                 const updatedMachine = await Machine.findById(machine._id);
                 const isNowOnline = updatedMachine.isConnected;
+
+                if (wasOnline && !isNowOnline) {
+                    console.log(`[${machine.name}] Connection loss detected - handling shift update`);
+                    await this.handleConnectionLoss(machine);
+                }
                 
                 this.logStatusChange(machine.name, wasOnline, isNowOnline);
                 
@@ -64,14 +66,15 @@ class ModbusService {
                 }
             }
             
+            
             const onlineCount = await Machine.countDocuments({ isConnected: true });
             const offlineCount = allMachines.length - onlineCount;
             
-            console.log(`🏁 Scan cycle completed: ${onlineCount} online, ${offlineCount} offline`);
+            console.log(`Scan cycle completed: ${onlineCount} online, ${offlineCount} offline`);
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             
         } catch (error) {
-            console.error('❌ Error in scan cycle:', error.message);
+            console.error('Error in scan cycle:', error.message);
         }
     }
 
@@ -82,7 +85,8 @@ class ModbusService {
         this.machineConnectionLocks.set(lockKey, true);
         try {
             await this.performModbusRead(machine);
-        } finally {
+        } 
+        finally {
             this.machineConnectionLocks.delete(lockKey);
         }
     }
@@ -104,9 +108,10 @@ class ModbusService {
 
             connectionTimer = setTimeout(async () => {
                 if (!isResolved) {
-                    console.log(`⏰ [${machine.name}] Connection timeout - updating status to offline`);
+                    console.log(`[${machine.name}] Connection timeout - updating status to offline`);
+                
+                    await this.handleConnectionLoss(machine);
                     
-                    // ✅ THÊM: Cập nhật trạng thái máy khi timeout
                     await this.updateMachineStatus(machine._id, { 
                         isConnected: false, 
                         status: 'offline', 
@@ -116,7 +121,7 @@ class ModbusService {
                     
                     isResolved = true; 
                     cleanup();
-                    resolve();
+                    resolve({ success: false, error: 'timeout' });
                 }
             }, MODBUS_CONFIG.timeout);
 
@@ -151,13 +156,12 @@ class ModbusService {
                         registers[i] = data.readUInt16BE(9 + (i * 2));
                     }
                     try {
-                        console.log(`🔄 [${machine.name}] Calling workShiftService.handleTracking...`);
+                        console.log(`[${machine.name}] Calling workShiftService.handleTracking...`);
                         await workShiftService.handleTracking(machine, registers);
-                        console.log(`✅ [${machine.name}] workShiftService completed`);
+                        console.log(`[${machine.name}] workShiftService completed`);
                     } catch (shiftError) {
-                        console.error(`❌ [${machine.name}] workShiftService error:`, shiftError.message);
+                        console.error(`[${machine.name}] workShiftService error:`, shiftError.message);
                     }
-                    // ✅ CẬP NHẬT parameters structure cho 48 registers
                     const parameters = {
                         // Monitoring data (40001-40008)
                         monitoringData: Object.fromEntries(
@@ -189,17 +193,23 @@ class ModbusService {
                 }
             });
 
-            client.on('error', async () => {
-                if (isResolved) return;
-                await this.updateMachineStatus(machine._id, { 
-                    isConnected: false, 
-                    status: 'offline', 
-                    lastError: 'Connection error', 
-                    disconnectedAt: new Date() 
-                });
-                isResolved = true; 
-                cleanup(); 
-                resolve();
+            client.on('error', async (err) => {
+                if (!isResolved) {
+                    console.log(`[${machine.name}] Connection error - checking last machine status`);
+                    
+                    await this.handleConnectionLoss(machine);
+                    
+                    await this.updateMachineStatus(machine._id, {
+                        isConnected: false,
+                        status: 'offline',
+                        lastError: err.message,
+                        disconnectedAt: new Date()
+                    });
+                    
+                    isResolved = true;
+                    cleanup();
+                    resolve({ success: false, error: err.message });
+                }
             });
 
             client.on('timeout', async () => {
@@ -258,7 +268,6 @@ class ModbusService {
             );
             
             if (machine) {
-                // ✅ THÊM: Xử lý connection loss cho work shift
                 if (!updateData.isConnected && machine.isConnected) {
                     console.log(`🚨 [${machine.name}] Detected connection loss - Notifying work shift service`);
                     await workShiftService.handleConnectionLoss(machine);
@@ -270,6 +279,85 @@ class ModbusService {
             console.error('Error updating machine status:', error.message);
         }
     }
+
+    async handleConnectionLoss(machine) {
+        try {
+            console.log(`🔍 [${machine.name}] Checking machine status before connection loss...`);
+            
+            const lastMachineStatus = machine.parameters?.monitoringData?.['40001'];
+            console.log(`[${machine.name}] Last machine status (40001): ${lastMachineStatus}`);
+            
+            if (lastMachineStatus !== undefined) {
+                // Cập nhật status của ca đang active
+                await this.updateActiveShiftStatus(machine, lastMachineStatus);
+            }
+            
+        } catch (error) {
+            console.error(`[${machine.name}] Error handling connection loss:`, error.message);
+        }
+    }
+
+    async updateActiveShiftStatus(machine, lastMachineStatus) {
+        try {
+            const WorkShift = (await import('../models/Workshift.js')).default;
+            
+            // Tìm ca đang active của máy này
+            const activeShift = await WorkShift.findOne({ 
+                machineId: machine.machineId,
+                status: 'active'
+            });
+            
+            if (activeShift) {
+                let newStatus;
+                
+                if (lastMachineStatus === 1) {
+                    // Máy đang hoạt động trước khi mất kết nối -> ca chưa hoàn thiện
+                    newStatus = 'incomplete';
+                    console.log(`⚠️ [${machine.name}] Shift ${activeShift.shiftId}: Machine was RUNNING before disconnect -> INCOMPLETE`);
+                } else {
+                    // Máy đã dừng trước khi mất kết nối -> ca hoàn thiện
+                    newStatus = 'completed';
+                    activeShift.endTime = new Date(); 
+                    console.log(`[${machine.name}] Shift ${activeShift.shiftId}: Machine was STOPPED before disconnect -> COMPLETED`);
+                }
+                
+                activeShift.status = newStatus;
+                activeShift.updatedAt = new Date();
+                
+                // Recalculate duration if completed
+                if (newStatus === 'completed' && activeShift.startTime) {
+                    const endTime = activeShift.endTime || new Date();
+                    activeShift.duration = Math.round((endTime - new Date(activeShift.startTime)) / (1000 * 60));
+                }
+                
+                await activeShift.save();
+                console.log(`[${machine.name}] Updated shift ${activeShift.shiftId} status to: ${newStatus}`);
+                
+                // ✅ Notify mainServer về thay đổi status
+                const notificationService = (await import('./notificationService.js')).default;
+                await notificationService.notifyMainServerShiftStatusChanged(activeShift);
+                
+            } else {
+                console.log(`[${machine.name}] No active shift found to update`);
+            }
+            
+        } catch (error) {
+            console.error(`[${machine.name}] Error updating active shift status:`, error.message);
+        }
+    }
+    
+    logStatusChange(machineName, wasOnline, isNowOnline) {
+        if (!wasOnline && isNowOnline) {
+            console.log(`[${machineName}] Machine came ONLINE - Data updated`);
+        } else if (wasOnline && !isNowOnline) {
+            console.log(`[${machineName}] Machine went OFFLINE`);
+        } else if (isNowOnline) {
+            console.log(`[${machineName}] Online - Data refreshed`);
+        } else {
+            console.log(`[${machineName}] Still offline`);
+        }
+    }
+
 }
 
 export const modbusService = new ModbusService();

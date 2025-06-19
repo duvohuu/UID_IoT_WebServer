@@ -27,6 +27,11 @@ const workShiftSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    status: {
+        type: String,
+        enum: ['running', 'completed', 'incompleted'],
+        default: 'running'
+    },
     startTime: {
         type: Date,
         required: true,
@@ -40,12 +45,8 @@ const workShiftSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'completed', 'incomplete', 'interrupted'],
+        enum: ['active', 'completed', 'incomplete'],
         default: 'active'
-    },
-    totalBottlesProduced: {
-        type: Number,
-        default: 0
     },
     totalWeightFilled: {
         type: Number,
@@ -80,13 +81,44 @@ workShiftSchema.pre('save', function(next) {
     }
     
     // Calculate efficiency (kg/hour)
-    if (this.totalWeightFilled) {
-        const weightInKg = this.totalWeightFilled; 
-        const durationInHours = this.duration / 60;
-        this.efficiency = Number((weightInKg / durationInHours).toFixed(2)); 
-
+    if (this.totalWeightFilled && this.duration && this.duration > 0) {
+        const weightInKg = this.totalWeightFilled / 1000; // Convert gram to kg
+        const durationInHours = this.duration / 60; // Convert minutes to hours
+        this.efficiency = Number((weightInKg / durationInHours).toFixed(2));
     } else {
-        this.efficiency = 0; 
+        this.efficiency = 0;
+    }
+    
+    next();
+});
+
+workShiftSchema.methods.recalculateEfficiency = function() {
+    if (this.totalWeightFilled && this.duration && this.duration > 0) {
+        const weightInKg = this.totalWeightFilled / 1000;
+        const durationInHours = this.duration / 60;
+        this.efficiency = Number((weightInKg / durationInHours).toFixed(2));
+        return this.efficiency;
+    }
+    this.efficiency = 0;
+    return 0;
+};
+
+workShiftSchema.pre('save', function(next) {
+    console.log(`🔧 PRE-SAVE calculating efficiency for ${this.shiftId}:`);
+    
+    this.updatedAt = new Date();
+    
+    if (this.startTime && (!this.duration || this.duration === 0)) {
+        const currentTime = this.endTime || new Date();
+        this.duration = Math.round((currentTime - new Date(this.startTime)) / (1000 * 60));    
+    }
+    
+    if (this.totalWeightFilled && this.duration && this.duration > 0) {
+        const weightInKg = this.totalWeightFilled;
+        const durationInHours = this.duration / 60;
+        this.efficiency = Number((weightInKg / durationInHours).toFixed(2));
+    } else {
+        this.efficiency = 0;
     }
     
     next();

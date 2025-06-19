@@ -9,10 +9,10 @@ import {
 
 const router = express.Router();
 
-router.use((req, res, next) => {
-    console.log(`🔗 Internal Machine Route: ${req.method} ${req.path}`);
-    next();
-});
+// router.use((req, res, next) => {
+//     console.log(`🔗 Internal Machine Route: ${req.method} ${req.path}`);
+//     next();
+// });
 
 router.get('/', getAllMachines);
 router.post('/', createMachine);

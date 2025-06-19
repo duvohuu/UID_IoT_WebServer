@@ -43,16 +43,16 @@ const MACHINE_TEMPLATE = {
 const CONFIG = {
     // Email của user cần thêm máy
     userEmails: [
-        'newuser@test.com',    // userId sẽ là: test1
+        'hotieuviet@gmail.com',  
     ],  
     
     // Thông tin máy mới
     machine: {
         machineId: 'MACHINE_002',           
-        name: 'Máy Test 1',      
+        name: 'Máy Test',      
         ip: '127.0.0.1',    
         port: 502,            
-        location: 'Test',      
+        location: 'UID Lab',      
         type: 'Test Machine'
     }
 };
@@ -85,7 +85,7 @@ const addMachineToUsers = async () => {
                 console.log(`✅ User found: ${user.username} (userId: ${user.userId})`);
                 
                 // Tạo IP unique cho từng user
-                const ipParts = CONFIG.machine.ip.split('.'); // ✅ Sửa từ baseIp thành ip
+                const ipParts = CONFIG.machine.ip.split('.'); 
                 ipParts[3] = parseInt(ipParts[3]) + i;
                 const machineIp = ipParts.join('.');
                 

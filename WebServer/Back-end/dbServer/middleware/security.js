@@ -6,7 +6,7 @@ export const corsMiddleware = (req, res, next) => {
 };
 
 export const loggingMiddleware = (req, res, next) => {
-    console.log(`📨 DB Server: ${req.method} ${req.url}`);
+    // console.log(`📨 DB Server: ${req.method} ${req.url}`);
     next();
 };
 
@@ -18,7 +18,7 @@ export const ipWhitelistMiddleware = (req, res, next) => {
     if (allowedIPs.some(ip => clientIP.includes(ip)) || clientIP.includes('192.168.')) {
         next();
     } else {
-        console.log(`🚫 Blocked internal API access from: ${clientIP}`);
+        // console.log(`🚫 Blocked internal API access from: ${clientIP}`);
         res.status(403).json({ message: 'Access denied - Internal API only' });
     }
 };

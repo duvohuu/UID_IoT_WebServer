@@ -8,10 +8,10 @@ import {
 
 const router = express.Router();
 
-router.use((req, res, next) => {
-    console.log(`🔗 Internal WorkShift Route: ${req.method} ${req.path}`);
-    next();
-});
+// router.use((req, res, next) => {
+//     console.log(`🔗 Internal WorkShift Route: ${req.method} ${req.path}`);
+//     next();
+// });
 
 router.get('/', getWorkShifts);
 router.get('/stats', getWorkShiftStats); 

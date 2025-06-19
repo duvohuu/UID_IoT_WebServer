@@ -6,12 +6,11 @@ class WorkShiftService {
     constructor() {
         // Map theo dõi ca đã được xử lý
         this.processedShifts = new Map();
+        this.lastKnownShifts = new Map();
     }
 
     async handleTracking(machine, registers) {
-        const currentTime = new Date();
-        
-        // ✅ TẠO DATA STRUCTURE MỚI (42 registers total)
+        // TẠO DATA STRUCTURE MỚI (48 registers total)
         const currentParameters = {
             // Monitoring data (40001-40008)
             monitoringData: {
@@ -34,100 +33,80 @@ class WorkShiftService {
         };
 
         try {
-            // ✅ LOGIC MỚI: Kiểm tra ID ca từ register 40009 và 40010
-            await this.checkAndCreateShiftByID(machine, currentParameters, currentTime);
+            await this.checkAndCreateShiftByID(machine, currentParameters);
 
         } catch (error) {
             console.error(`❌ [${machine.name}] Work shift tracking error:`, error.message);
         }
     }
 
-    // ✅ KIỂM TRA VÀ TẠO CA THEO ID
-    async checkAndCreateShiftByID(machine, currentParameters, currentTime) {
-        // ✅ Lấy ID ca từ register 40009 (Low) và 40010 (High)
-        const shiftIdLow = currentParameters.adminData['40009'] || 0;
-        const shiftIdHigh = currentParameters.adminData['40010'] || 0;
-        const shiftNumber = (shiftIdHigh * 65536) + shiftIdLow;
-        
-        let machineNumber = 1; 
-        if (machine.machineId) {
-            const machineMatch = machine.machineId.match(/(\d+)/);
-            if (machineMatch) {
-                machineNumber = parseInt(machineMatch[1]);
-            }
-        }
-        
-        const shiftId = `M${machineNumber}_S${shiftNumber}`;
+    // KIỂM TRA VÀ TẠO CA THEO ID
+    async checkAndCreateShiftByID(machine, currentParameters) {
+        const shiftInfo = this.getShiftIdFromParameters(machine, currentParameters);
+        const { shiftId, shiftNumber, machineNumber, shiftIdLow, shiftIdHigh } = shiftInfo
         
         console.log(`\n🔍 [${machine.name}] === SHIFT CHECK ===`);
-        console.log(`   📊 Register 40009 (Low): ${shiftIdLow}`);
-        console.log(`   📊 Register 40010 (High): ${shiftIdHigh}`);
         console.log(`   🏭 Machine ID: ${machine.machineId}`); 
         console.log(`   🏭 Machine Number: ${machineNumber}`); 
         console.log(`   📋 Shift Number: ${shiftNumber}`);
         console.log(`   🆔 Shift ID: ${shiftId}`);
         
-        // ✅ Nếu ID = 0, không có ca nào
+        // Nếu ID = 0, không có ca nào
         if (shiftNumber === 0) {
             console.log(`⏸️ [${machine.name}] No active shift (ID = 0)`);
             console.log(`🔍 [${machine.name}] === END SHIFT CHECK ===\n`);
             return;
         }
-        
+
+        await this.checkForShiftChange(machine, shiftId, currentParameters);
+
         try {
-            // ✅ Kiểm tra ca đã tồn tại trong DB chưa
-            console.log(`🔍 [${machine.name}] Checking database for shift: ${shiftId}`);
+            // Kiểm tra ca đã tồn tại trong DB chưa
             const existingShift = await WorkShift.findOne({ shiftId: shiftId });
             
             if (existingShift) {
-                // ✅ Ca đã tồn tại - chỉ cập nhật data
-                console.log(`📝 [${machine.name}] ✅ SHIFT EXISTS - Updating: ${shiftId}`);
-                await this.updateExistingShift(existingShift, currentParameters, currentTime);
+                // Ca đã tồn tại - chỉ cập nhật data
+                console.log(`[${machine.name}] SHIFT EXISTS - Updating: ${shiftId}`);
+                await this.updateExistingShift(existingShift, currentParameters);
             } else {
-                // ✅ Ca chưa tồn tại - tạo mới
-                console.log(`🆕 [${machine.name}] ⭐ NEW SHIFT DETECTED - Creating: ${shiftId}`);
-                await this.createNewShiftFromData(machine, shiftId, machineNumber, shiftNumber, currentParameters, currentTime);
+                // Ca chưa tồn tại - tạo mới
+                console.log(`[${machine.name}] NEW SHIFT DETECTED - Creating: ${shiftId}`);
+                await this.createNewShiftFromData(machine, shiftId, machineNumber, shiftNumber, currentParameters);
             }
             
         } catch (error) {
-            console.error(`❌ [${machine.name}] Error processing shift ${shiftId}:`, error.message);
-            console.error(`❌ [${machine.name}] Error stack:`, error.stack);
+            console.error(`[${machine.name}] Error processing shift ${shiftId}:`, error.message);
         }
         
         console.log(`🔍 [${machine.name}] === END SHIFT CHECK ===\n`);
     }
 
     // TẠO CA MỚI TỪ DATA
-    async createNewShiftFromData(machine, shiftId, machineNumber, shiftNumber, currentParameters, currentTime) {
-        console.log(`\n🟢 [${machine.name}] === CREATING NEW SHIFT ===`);
-        console.log(`   🆔 Shift ID: ${shiftId}`);
-        console.log(`   🏭 Machine ID: ${machine.machineId}`);
-        console.log(`   🏭 Machine Number: ${machineNumber}`);
-        console.log(`   📋 Shift Number: ${shiftNumber}`);
-        console.log(`   👤 User ID: ${machine.userId}`);
-        
-        // Trích xuất thời gian từ register 40037-40042
-        const startTime = this.extractTimeFromRegisters(currentParameters.adminData, 'start');
-        const endTime = this.extractTimeFromRegisters(currentParameters.adminData, 'end');
-        
-        console.log(`   ⏰ Start time: ${startTime ? startTime.toISOString() : 'null'}`);
-        console.log(`   ⏰ End time: ${endTime ? endTime.toISOString() : 'null'}`);
-        
-        // Xác định status dựa trên thời gian
-        let status = 'active';
-        let actualEndTime = null;
-        let duration = null;
-        
-        if (endTime && endTime > startTime) {
-            status = 'completed';
-            actualEndTime = endTime;
-            duration = endTime - startTime;
-        }
-        
-        console.log(`   📊 Status: ${status}`);
-        console.log(`   ⏱️ Duration: ${duration}`);
-        
+    async createNewShiftFromData(machine, shiftId, machineNumber, shiftNumber, currentParameters) {
         try {
+            console.log(`\n [${machine.name}] === CREATING NEW SHIFT ===`);
+        
+            // Trích xuất thời gian từ registers
+            const startTime = this.extractTimeFromRegisters(currentParameters.adminData, 'start');
+            const endTime   = this.extractTimeFromRegisters(currentParameters.adminData, 'end');
+            
+            console.log(`   ⏰ Start: ${startTime ? startTime.toISOString() : 'null'}`);
+            console.log(`   ⏰ End: ${endTime ? endTime.toISOString() : 'null'}`);
+            
+            let status = 'active'; 
+            let duration = 0;
+            if (startTime && endTime) {
+                duration = Math.round((endTime - startTime) / (1000 * 60));
+            }
+        
+            // Tính total weight từ registers 40005-40006
+            const totalWeight = this.calculateTotalWeight(currentParameters);
+            
+            // Predict efficiency
+            if (totalWeight > 0 && duration > 0) {
+                const predictedEfficiency = ((totalWeight / 1000) / (duration / 60)).toFixed(2);
+            }
+            
             const newShift = new WorkShift({
                 shiftId: shiftId,
                 machineId: machine.machineId,
@@ -135,69 +114,240 @@ class WorkShiftService {
                 userId: machine.userId,
                 machineNumber: machineNumber,
                 shiftNumber: shiftNumber,
-                startTime: startTime || currentTime,
-                endTime: actualEndTime,
+                startTime: startTime,
+                endTime: endTime,
                 duration: duration,
                 status: status,
                 finalData: currentParameters,
-                totalBottlesProduced: currentParameters.monitoringData['40007'] || 0,
-                totalWeightFilled: this.calculateTotalWeight(currentParameters)
+                totalWeightFilled: totalWeight
             });
             
-            console.log(`💾 [${machine.name}] Saving shift to database...`);
             await newShift.save();
-            console.log(`✅ [${machine.name}] Shift saved successfully: ${shiftId} (${status})`);
-            
-            // Notify mainServer
-            try {
-                console.log(`📡 [${machine.name}] Sending notification to mainServer...`);
-                if (status === 'active') {
-                    await notificationService.notifyMainServerShiftStarted(newShift);
-                } else {
-                    await notificationService.notifyMainServerShiftCompleted(newShift);
-                }
-                console.log(`📡 [${machine.name}] ✅ Notification sent successfully (${status})`);
-            } catch (notifyError) {
-                console.error(`❌ [${machine.name}] Failed to notify:`, notifyError.message);
-            }
-            
-        } catch (saveError) {
-            console.error(`❌ [${machine.name}] FAILED TO SAVE SHIFT:`, saveError.message);
-            console.error(`❌ [${machine.name}] Save error details:`, saveError);
+            return newShift;
+        }
+
+        catch (error){
+            console.error(`❌ [${machine.name}] Error creating new shift:`, error.message);
+            throw error;      
         }
         
-        console.log(`🟢 [${machine.name}] === END CREATING SHIFT ===\n`);
     }
 
     // CẬP NHẬT CA ĐÃ TỒN TẠI
-    async updateExistingShift(shift, currentParameters, currentTime) {
-        console.log(`🔄 [${shift.machineName}] Updating existing shift: ${shift.shiftId}`);
+    async updateExistingShift(shift, currentParameters) {
+        try {
+            console.log(`\n [${shift.machineName}] === UPDATING EXISTING SHIFT ===`);
         
-        // Cập nhật data mới nhất
-        shift.finalData = currentParameters;
-        shift.totalBottlesProduced = currentParameters.monitoringData['40007'] || 0;
-        shift.totalWeightFilled = this.calculateTotalWeight(currentParameters);
-        shift.updatedAt = currentTime;
-        
-        // Kiểm tra nếu ca vừa kết thúc
-        const endTime = this.extractTimeFromRegisters(currentParameters.adminData, 'end');
-        
-        if (endTime && shift.status === 'active' && endTime > shift.startTime) {
-            console.log(`🔴 [${shift.machineName}] Shift completed: ${shift.shiftId}`);
-            shift.endTime = endTime;
-            shift.duration = endTime - shift.startTime;
-            shift.status = 'completed';
-            
-            // Notify completion
-            try {
-                await notificationService.notifyMainServerShiftCompleted(shift);
-                console.log(`📡 [${shift.machineName}] Shift completion notified`);
-            } catch (error) {
-                console.error(`❌ [${shift.machineName}] Failed to notify completion:`, error.message);
+            // Kiểm tra nếu ca bị gián đoạn trước đó
+            if (shift.status === 'incomplete' || shift.status === 'interrupted') {
+                console.log(`⚠️ [${shift.machineName}] Shift ${shift.shiftId} was ${shift.status}, now reconnected`);
+                
+                // Kiểm tra trạng thái máy hiện tại
+                const currentMachineStatus = currentParameters.monitoringData['40001'];
+                
+                if (currentMachineStatus === 1) {
+                    // Máy đang hoạt động lại -> chuyển về active
+                    shift.status = 'active';
+                    console.log(`[${shift.machineName}] Shift ${shift.shiftId} resumed: ${shift.status}`);
+                } else {
+                    // Máy vẫn dừng -> giữ nguyên status hoặc chuyển thành completed
+                    if (shift.status === 'incomplete') {
+                        shift.status = 'completed';
+                        console.log(`[${shift.machineName}] Shift ${shift.shiftId} completed after reconnection`);
+                    }
+                }
             }
+            
+            const newWeight = this.calculateTotalWeight(currentParameters);
+            shift.totalWeightFilled = newWeight;
+            shift.finalData = currentParameters;
+            
+
+            const startTime = this.extractTimeFromRegisters(currentParameters.adminData, 'start');
+            const endTime = this.extractTimeFromRegisters(currentParameters.adminData, 'end');
+
+            if (startTime) shift.startTime = startTime;
+            if (endTime) shift.endTime = endTime;
+            if (startTime && endTime) {
+                shift.duration = Math.round((endTime - startTime) / (1000 * 60));
+            }
+            
+            await shift.save();
+        }
+        catch (error) {
+            console.error(`❌ [${shift.machineName}] Error updating shift ${shift.shiftId}:`, error.message);
+            throw error;
         }
         
-        await shift.save();
+    }
+
+    // KIỂM TRA THAY ĐỔI CA
+    async checkForShiftChange(machine, currentShiftId, currentParameters) { 
+        try {            
+            const lastShiftId = this.lastKnownShifts.get(machine.machineId);
+            console.log(`🔍 [${machine.name}] lastShiftId: ${lastShiftId}, currentShiftId: ${currentShiftId}`);
+            
+            if (lastShiftId && lastShiftId !== currentShiftId) {
+                console.log(`🚨 [${machine.name}] SHIFT CHANGED: ${lastShiftId} → ${currentShiftId}`);
+                
+                const previousShift = await WorkShift.findOne({ shiftId: lastShiftId, status: 'active' });
+                console.log(`🔍 [${machine.name}] Found previous shift: ${!!previousShift}`);
+                
+                if (previousShift) {
+                    const previousMachineStatus = previousShift.finalData?.monitoringData?.['40001'] || 0;
+                  
+                    // Extract thời gian từ register
+                    const startTime = this.extractTimeFromRegisters(previousShift.finalData?.adminData || {}, 'start');
+                    const endTime = this.extractTimeFromRegisters(previousShift.finalData?.adminData || {}, 'end');
+                    
+                    // Set thời gian từ register
+                    if (startTime) {
+                        previousShift.startTime = startTime;
+                    }
+                    
+                    if (endTime) {
+                        previousShift.endTime = endTime;
+                    }
+                    
+                    if (startTime && endTime) {
+                        previousShift.duration = Math.round((endTime - startTime) / (1000 * 60));
+                    } else if (previousShift.startTime) {
+                        // Fallback duration calculation
+                        const fallbackEndTime = endTime || new Date();
+                        previousShift.duration = Math.round((fallbackEndTime - new Date(previousShift.startTime)) / (1000 * 60));
+                    }
+                    
+                    if (previousMachineStatus == 0) {
+                        previousShift.status = 'completed';
+                        console.log(`Logic: Machine was STOPPED (${previousMachineStatus}) → COMPLETED`);
+                        
+                        await previousShift.save();
+                        console.log(`[${machine.name}] Marked ${lastShiftId} as COMPLETED - Machine was stopped before shift change (Register 40001: ${previousMachineStatus})`);
+                        
+                        // Notify UI
+                        try {
+                            await notificationService.notifyMainServerShiftStatusChanged(previousShift, {
+                                eventType: 'shift_completed',
+                                reason: `Normal transition to ${currentShiftId} - Machine was stopped (40001: ${previousMachineStatus})`,
+                                timestamp: new Date().toISOString()
+                            });
+                        } catch (notifyError) {
+                            console.error(`[${machine.name}] Notification error:`, notifyError.message);
+                        }
+                        
+                    } else {
+                        // Máy vẫn chạy → ca cũ chưa hoàn thành
+                        previousShift.status = 'incomplete';
+                        console.log(`   🔍 Logic: Machine was RUNNING (${previousMachineStatus}) → INCOMPLETE`);
+                        
+                        await previousShift.save();
+                        console.log(`⚠️ [${machine.name}] Marked ${lastShiftId} as INCOMPLETE - Machine was still running when shift changed (Register 40001: ${previousMachineStatus})`);
+                        
+                        // Notify UI
+                        try {
+                            await notificationService.notifyMainServerShiftStatusChanged(previousShift, {
+                                eventType: 'shift_changed_incomplete',
+                                reason: `Changed to ${currentShiftId} - Machine was still running when shift changed (40001: ${previousMachineStatus})`,
+                                timestamp: new Date().toISOString()
+                            });
+                        } catch (notifyError) {
+                            console.error(`❌ [${machine.name}] Notification error:`, notifyError.message);
+                        }
+                    }
+                    
+                    console.log(`🔍 [${machine.name}] === END SHIFT CHANGE ANALYSIS ===`);
+                    
+                } else {
+                    console.log(`⚠️ [${machine.name}] Previous shift ${lastShiftId} not found or not active`);
+                }
+            } else {
+                console.log(`🔍 [${machine.name}] No shift change detected (last: ${lastShiftId}, current: ${currentShiftId})`);
+            }
+            
+            // Cập nhật ca hiện tại
+            if (currentShiftId !== 'M1_S0') {
+                this.lastKnownShifts.set(machine.machineId, currentShiftId);
+                console.log(`🔍 [${machine.name}] Updated lastKnownShift to: ${currentShiftId}`);
+            }
+            
+        } catch (error) {
+            console.error(`[${machine.name}] Error in checkForShiftChange:`, error.message);
+            console.error(`[${machine.name}] Error stack:`, error.stack);
+            
+            if (currentShiftId !== 'M1_S0') {
+                this.lastKnownShifts.set(machine.machineId, currentShiftId);
+            }
+        }
+    }
+
+    getShiftIdFromParameters(machine, currentParameters) {
+        let shiftIdLow = 0;
+        let shiftIdHigh = 0;
+        let shiftNumber = 0;
+        let machineNumber = 1;
+        let shiftId = null;
+        
+        try {
+            // Kiểm tra currentParameters tồn tại
+            if (!currentParameters || !currentParameters.adminData) {
+                console.error(`[${machine.name}] Invalid currentParameters structure`);
+                return {
+                    shiftId: null,
+                    shiftNumber: 0,
+                    machineNumber: 1,
+                    shiftIdLow: 0,
+                    shiftIdHigh: 0
+                };
+            }
+            
+            shiftIdLow = currentParameters.adminData['40009'] || 0;
+            shiftIdHigh = currentParameters.adminData['40010'] || 0;
+            shiftNumber = (shiftIdHigh * 65536) + shiftIdLow;
+            
+            // Lấy machine number từ machineId
+            if (machine.machineId) {
+                const machineMatch = machine.machineId.match(/(\d+)/);
+                if (machineMatch) {
+                    machineNumber = parseInt(machineMatch[1]);
+                }
+            }
+            
+            shiftId = `M${machineNumber}_S${shiftNumber}`;
+            
+        } catch (error) {
+            console.error(`[${machine.name}] Error getting shift ID:`, error.message);
+        }
+        
+        return {
+            shiftId,
+            shiftNumber,
+            machineNumber,
+            shiftIdLow,
+            shiftIdHigh
+        };
+    }
+    
+
+    calculateTotalWeight(currentParameters) {
+        try {
+            const weightLow = currentParameters.monitoringData['40005'] || 0;
+            const weightHigh = currentParameters.monitoringData['40006'] || 0;
+            
+            
+            const buffer = new ArrayBuffer(4);
+            const view = new DataView(buffer);
+            
+            view.setUint16(0, weightLow, true);  
+            view.setUint16(2, weightHigh, true);  
+            
+            // Đọc lại dưới dạng float32
+            const totalWeight = view.getFloat32(0, true);
+        
+            return totalWeight;
+        } catch (error) {
+            console.error('Error calculating total weight:', error);
+            return 0;
+        }
     }
 
     // TRÍCH XUẤT THỜI GIAN TỪ REGISTERS
@@ -229,7 +379,6 @@ class WorkShiftService {
             // Kiểm tra giá trị hợp lệ
             if (year < 2020 || month < 1 || month > 12 || day < 1 || day > 31 || 
                 hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59) {
-                console.log(`⚠️ Invalid ${type} time values: ${year}-${month}-${day} ${hour}:${minute}:${second}`);
                 return null;
             }
             
@@ -237,16 +386,9 @@ class WorkShiftService {
             return date;
             
         } catch (error) {
-            console.error(`❌ Error extracting ${type} time:`, error.message);
+            console.error(`Error extracting ${type} time:`, error.message);
             return null;
         }
-    }
-
-    // TÍNH TỔNG TRỌNG LƯỢNG
-    calculateTotalWeight(data) {
-        const low = data?.monitoringData?.['40005'] || 0;
-        const high = data?.monitoringData?.['40006'] || 0;
-        return (high * 65536) + low;
     }
 }
 

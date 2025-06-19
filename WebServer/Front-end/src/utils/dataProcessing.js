@@ -1,5 +1,5 @@
 export const processCombinedData = (data, config, machineInfo = null) => {
-    const processedData = { ...data }; // ✅ SỬA: Giữ lại data gốc trước
+    const processedData = { ...data }; 
     
     Object.entries(config).forEach(([key, fieldConfig]) => {
         if (fieldConfig.type === 'combined') {
@@ -11,12 +11,12 @@ export const processCombinedData = (data, config, machineInfo = null) => {
                     const high = data[fieldConfig.highRegister] || 0;
                     value = (high * 65536) + low;
                     
-                    // ✅ Special formatting cho shiftId
+                    // Special formatting cho shiftId
                     if (fieldConfig.display === 'shift_format' && machineInfo) {
                         const machineNumber = extractMachineNumber(machineInfo.machineId);
                         value = `M${machineNumber}_S${value}`;
                     } else {
-                        // ✅ Format số với comma separator
+                        // Format số với comma separator
                         value = value.toLocaleString('vi-VN');
                     }
                     break;
@@ -32,7 +32,7 @@ export const processCombinedData = (data, config, machineInfo = null) => {
                         const month = data[monthReg] || 1;
                         const year = data[yearReg] || new Date().getFullYear();
                         
-                        // ✅ Validation
+                        // Validation
                         if (year >= 2020 && month >= 1 && month <= 12 && 
                             day >= 1 && day <= 31 && hour >= 0 && hour <= 23 && 
                             minute >= 0 && minute <= 59 && second >= 0 && second <= 59) {
@@ -51,13 +51,12 @@ export const processCombinedData = (data, config, machineInfo = null) => {
             
             processedData[key] = value;
         }
-        // ✅ SỬA: Không cần else vì đã copy data gốc ở trên
     });
     
     return processedData;
 };
 
-// ✅ Helper function
+// Helper function
 const extractMachineNumber = (machineId) => {
     if (!machineId) return 1;
     const match = machineId.match(/(\d+)/);

@@ -17,7 +17,6 @@ const StatusPage = ({ user }) => {
     const [socket, setSocket] = useState(null);
 
     useEffect(() => {
-        // Chỉ fetch machines khi user đã đăng nhập
         if (!user) {
             setMachines([]);
             setLoading(false);
@@ -25,11 +24,18 @@ const StatusPage = ({ user }) => {
             return;
         }
 
-        // Kết nối đến mainServer (port 5000)
-        const newSocket = io("http://localhost:5000", {
+        const getSocketUrl = () => {
+            if (import.meta.env.VITE_API_URL) {
+                return import.meta.env.VITE_API_URL;
+            }
+            return `${window.location.protocol}//${window.location.hostname}:5000`;
+        };
+
+        const newSocket = io(getSocketUrl(), {
             withCredentials: true,
             transports: ["websocket", "polling"]
         });
+    
         
         console.log('🔌 Connecting to mainServer for real-time updates...');
         
@@ -41,9 +47,15 @@ const StatusPage = ({ user }) => {
             console.log("❌ Disconnected from mainServer");
         });
         
+        newSocket.on("shiftStatusChanged", (shiftUpdate) => {
+            console.log('📡 Shift status changed:', shiftUpdate);
+            showSnackbar(
+                `Ca ${shiftUpdate.shiftId}: ${shiftUpdate.status}`, 
+                shiftUpdate.status === 'completed' ? 'success' : 'warning'
+            );
+        });
         setSocket(newSocket);
 
-        // Lấy danh sách máy từ mainServer API
         const fetchMachines = async () => {
             try {
                 setLoading(true);
@@ -52,7 +64,18 @@ const StatusPage = ({ user }) => {
                 const result = await getMachines();
                 if (result.success && result.data && result.data.length > 0) {
                     console.log("✅ Machines loaded from API:", result.data.length);
-                    setMachines(result.data);
+                    
+                    const sortedMachines = result.data.sort((a, b) => {
+                        // Extract số từ machineId (VD: MACHINE_001 -> 1, MACHINE_002 -> 2)
+                        const getNumFromMachineId = (machineId) => {
+                            const match = machineId.match(/\d+/);
+                            return match ? parseInt(match[0]) : 0;
+                        };
+                        
+                        return getNumFromMachineId(a.machineId) - getNumFromMachineId(b.machineId);
+                    });
+                    
+                    setMachines(sortedMachines);
                     setError(null);
                 } else {
                     console.warn("Không có dữ liệu từ API");
@@ -73,7 +96,6 @@ const StatusPage = ({ user }) => {
 
         fetchMachines();
 
-        // Lắng nghe socket events từ mainServer
         newSocket.on("machineStatusUpdate", (update) => {
             console.log('📡 Machine status update from mainServer:', update);
             
@@ -93,11 +115,19 @@ const StatusPage = ({ user }) => {
 
         newSocket.on("newMachineAdded", (newMachine) => {
             console.log('📡 New machine added:', newMachine);
-            setMachines((prevMachines) => [...prevMachines, newMachine]);
+            setMachines((prevMachines) => {
+                const updatedMachines = [...prevMachines, newMachine];
+                return updatedMachines.sort((a, b) => {
+                    const getNumFromMachineId = (machineId) => {
+                        const match = machineId.match(/\d+/);
+                        return match ? parseInt(match[0]) : 0;
+                    };
+                    return getNumFromMachineId(a.machineId) - getNumFromMachineId(b.machineId);
+                });
+            });
             showSnackbar(`Máy mới được thêm: ${newMachine.name}`, 'info');
         });
 
-        // ✅ Listen for machine deletion
         newSocket.on("machineDeleted", (deletedMachine) => {
             console.log('📡 Machine deleted:', deletedMachine);
             setMachines((prevMachines) => 
@@ -119,14 +149,21 @@ const StatusPage = ({ user }) => {
         navigate(`/machine/${machine.ip}`);
     };
 
-    // ✅ Handle machine delete callback
     const handleMachineDelete = async (deletedMachine) => {
         try {
-            // Refresh danh sách máy sau khi xóa
             const result = await getMachines();
             if (result.success && result.data) {
-                setMachines(result.data);
-                console.log("✅ Machine list refreshed after deletion");
+                // ✅ SORT LẠI SAU KHI XÓA
+                const sortedMachines = result.data.sort((a, b) => {
+                    const getNumFromMachineId = (machineId) => {
+                        const match = machineId.match(/\d+/);
+                        return match ? parseInt(match[0]) : 0;
+                    };
+                    return getNumFromMachineId(a.machineId) - getNumFromMachineId(b.machineId);
+                });
+                
+                setMachines(sortedMachines);
+                console.log("✅ Machine list refreshed and sorted after deletion");
             }
         } catch (error) {
             console.error("Error refreshing machines after delete:", error);
@@ -139,14 +176,14 @@ const StatusPage = ({ user }) => {
             <StatusStatsCards 
                 machines={machines} 
                 loading={loading} 
-                user={user} // ✅ Truyền user để phân quyền hiển thị
+                user={user} 
             />
             <StatusMachinesGrid 
                 machines={machines} 
                 loading={loading} 
-                user={user} // ✅ Truyền user để phân quyền
+                user={user} 
                 onMachineClick={handleMachineClick}
-                onMachineDelete={handleMachineDelete} // ✅ Handle delete callback
+                onMachineDelete={handleMachineDelete} 
             />
         </Container>
     );

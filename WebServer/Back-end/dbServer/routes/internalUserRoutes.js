@@ -8,10 +8,10 @@ import {
 
 const router = express.Router();
 
-router.use((req, res, next) => {
-    console.log(`🔗 Internal User Route: ${req.method} ${req.path}`);
-    next();
-});
+// router.use((req, res, next) => {
+//     console.log(`🔗 Internal User Route: ${req.method} ${req.path}`);
+//     next();
+// });
 
 router.get('/:id', getUserById);
 router.get('/email/:email', getUserByEmail);

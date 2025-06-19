@@ -63,13 +63,13 @@ const machineSchema = new mongoose.Schema({
     },
     
     // Thông tin vận hành
-    uptime: { type: Number, default: 0 }, // milliseconds
+    uptime: { type: Number, default: 0 },
     connectedAt: { type: Date },
     disconnectedAt: { type: Date },
     
     // Dữ liệu từ HMI/PLC
     parameters: {
-        // Data for monitoring (All users can view) - 40001 to 40007
+        // Data for monitoring (All users can view) - 40001 to 40008
         monitoringData: {
             '40001': { type: Number, default: 0 }, // Trạng thái hoạt động máy
             '40002': { type: Number, default: 0 }, // Trạng thái bồn cấp muối
@@ -77,16 +77,15 @@ const machineSchema = new mongoose.Schema({
             '40004': { type: Number, default: 0 }, // Khối lượng cần chiết rót
             '40005': { type: Number, default: 0 }, // Tổng KL đã chiết (Low)
             '40006': { type: Number, default: 0 }, // Tổng KL đã chiết (High)
-            '40007': { type: Number, default: 0 }  // Tổng số chai đã chiết
+            '40007': { type: Number, default: 0 }, // Tổng số chai đã chiết
+            '40008': { type: Number, default: 0 }, // Số line hoạt động
         },
         
-        // Admin only data - 40008 to 40036
+        // Admin only data - 40009 to 40036
         adminData: {
-            // Loadcell analog values (40008-40011)
-            '40008': { type: Number, default: 0 },
+            // ID value (40009-40010)
             '40009': { type: Number, default: 0 },
             '40010': { type: Number, default: 0 },
-            '40011': { type: Number, default: 0 },
             
             // Loadcell gain and offset (40012-40019)
             '40012': { type: Number, default: 0 },

@@ -32,46 +32,42 @@ export const MONITORING_DATA_CONFIG = {
         values: {
             0: { label: 'Chưa đầy', color: 'warning' },
             1: { label: 'Đã đầy', color: 'success' }
-        }
+        },
     },
     '40003': {
         title: 'Loại muối đang chiết',
         icon: SaltIcon,
         type: 'status',
         values: {
-            0: { label: 'Muối nhuyễn', color: 'info' },
-            1: { label: 'Muối hạt', color: 'primary' }
-        }
-    },
-    '40004': {
-        title: 'Khối lượng cần chiết rót',
-        icon: TargetIcon,
-        type: 'numeric',
-        unit: 'g',
-        range: '0 - 1500'
+            0: { label: 'Muối hạt', color: 'info' },
+            1: { label: 'Muối nhuyễn', color: 'primary' }
+        },
     },
     '40007': {
         title: 'Tổng số chai đã chiết',
         icon: BottleIcon,
         type: 'numeric',
         unit: 'chai',
-        range: '0 - 65535'
+        range: '0 - 65535',
     },
-    'totalWeight': {
+    'totalWeightFilled': {
         title: 'Tổng khối lượng đã chiết',
         icon: WeightIcon,
-        type: 'combined',
-        unit: 'g',
-        lowRegister: '40005',
-        highRegister: '40006',
-        calculation: 'hight_low_32bit',
+        type: 'numeric',
+        unit: 'Kg',
+        source: 'shiftInfo',
+        range: '0 - 99999.99'
     },
     '40008': {
         title: 'Số line hoạt động',
         icon: AnalogIcon,
-        type: 'numeric',
-        unit: 'line',
-        range: '1 - 4'
+        type: 'status',
+        values: {
+            0: { label: 'Cả 2 line đều dừng', color: 'error' },
+            1: { label: 'Line A hoạt động', color: 'warning' },
+            2: { label: 'Line B hoạt động', color: 'warning' },
+            3: { label: 'Cả 2 line đều hoạt động', color: 'success' }
+        },
     }
 };
 

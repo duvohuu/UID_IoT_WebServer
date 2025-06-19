@@ -10,10 +10,10 @@ import {
 const router = express.Router();
 
 // Middleware logging
-router.use((req, res, next) => {
-    console.log(`🛣️ WorkShift Route: ${req.method} ${req.path}`);
-    next();
-});
+// router.use((req, res, next) => {
+//     console.log(`🛣️ WorkShift Route: ${req.method} ${req.path}`);
+//     next();
+// });
 
 router.get("/", authenticateToken, getWorkShifts);
 router.get("/stats/summary", authenticateToken, getWorkShiftStats);

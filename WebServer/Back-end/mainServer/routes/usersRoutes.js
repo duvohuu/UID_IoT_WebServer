@@ -5,7 +5,7 @@ import {
     logoutUser, 
     updateAvatar, 
     changePassword, 
-    verifyToken // THÊM: Import verifyToken
+    verifyToken 
 } from "../controllers/usersController.js";
 import { authenticateToken } from "../middleware/auth.js";
 import upload from "../middleware/upload.js";
