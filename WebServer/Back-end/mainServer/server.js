@@ -24,7 +24,7 @@ const DB_SERVER_URL = process.env.DB_SERVER_URL || "http://localhost:5001";
 
 const getAllLocalIPs = () => {
     const interfaces = os.networkInterfaces();
-    const ips = ['localhost', '127.0.0.1'];
+    const ips = ['localhost'];
     
     Object.keys(interfaces).forEach(interfaceName => {
         interfaces[interfaceName].forEach(iface => {
@@ -49,7 +49,7 @@ const generateAllowedOrigins = () => {
         });
     });
     
-    console.log('🌐 Allowed origins:', origins);
+    // console.log('🌐 Allowed origins:', origins);
     return origins;
 };
 

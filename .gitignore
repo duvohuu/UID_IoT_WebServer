@@ -4,7 +4,8 @@ node_modules/
 **/node_modules/
 WebServer/node_modules/
 WebServer/Front-end/node_modules/
-WebServer/Back-end/node_modules/
+WebServer/Back-end/dbServer/node_modules
+WebServer/Back-end/mainServer/node_modules
 
 # History files
 .history/
@@ -14,12 +15,6 @@ WebServer/.history/
 # package-lock.json
 # yarn.lock
 
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 # Logs
 npm-debug.log*
