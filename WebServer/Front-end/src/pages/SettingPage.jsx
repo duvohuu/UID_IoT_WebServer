@@ -20,7 +20,7 @@ import CurrentThemeDisplay from '../components/setting/CurrentThemeDisplay';
 // Import utils
 import { getSettingsData } from '../utils/settingsData';
 
-const SettingPage = ({ mode, setMode, user }) => {
+const SettingPage = ({ mode, setMode }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 

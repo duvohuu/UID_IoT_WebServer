@@ -27,13 +27,11 @@ const MachineDetailPage = ({ user }) => {
     const {
         workShifts,
         selectedShiftData,
-        setSelectedShiftData,
         shiftsLoading,
         shiftFilter,
         setShiftFilter,
         filteredShifts,
         userHasSelectedShift,
-        setUserHasSelectedShift,
         handleRefreshShifts,
         handleShiftClick,
         handleClearSelectedShift

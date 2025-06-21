@@ -26,8 +26,6 @@ import WorkShiftCard from './WorkShiftCard';
 import WorkShiftFilter from './WorkShiftFilter';
 
 const WorkShiftPanel = ({ 
-    machine,
-    workShifts = [],
     selectedShiftData,
     shiftsLoading,
     shiftFilter,
@@ -36,8 +34,6 @@ const WorkShiftPanel = ({
     onRefreshShifts,
     onShiftFilterChange,
     onClearSelectedShift,
-    userHasSelectedShift,
-    // Props mới cho multi-select
     selectedShifts = [],
     onShiftSelect,
     onSelectAllShifts,
@@ -67,7 +63,7 @@ const WorkShiftPanel = ({
                         Ca làm việc
                     </Typography>
                     <IconButton 
-                        size="small" 
+                        size='small' 
                         onClick={onRefreshShifts}
                         disabled={shiftsLoading}
                         sx={{ color: 'primary.main' }}
@@ -98,16 +94,16 @@ const WorkShiftPanel = ({
                         {selectedShiftData && (
                             <Chip 
                                 label={`Đang xem: ${selectedShiftData.shiftId}`}
-                                size="small"
-                                color="primary"
+                                size='small'
+                                color='primary'
                                 onDelete={onClearSelectedShift}
                             />
                         )}
                         {selectedShifts.length > 0 && (
                             <Chip 
                                 label={`${selectedShifts.length} ca đã chọn`}
-                                size="small"
-                                color="secondary"
+                                size='smal'
+                                color='secondar'
                                 onDelete={() => onSelectAllShifts([])}
                                 deleteIcon={<ClearIcon />}
                             />

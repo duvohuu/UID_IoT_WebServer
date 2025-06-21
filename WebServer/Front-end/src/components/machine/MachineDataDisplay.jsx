@@ -16,7 +16,6 @@ import {
 } from '@mui/icons-material';
 import { MONITORING_DATA_CONFIG, ADMIN_DATA_CONFIG } from '../../config/machineDataConfig';
 import { processCombinedData } from '../../utils/dataProcessing';
-import { useCSVExport } from '../../hooks/useCSVExport';
 
 const MachineDataDisplay = ({ 
     machine, 
@@ -26,7 +25,6 @@ const MachineDataDisplay = ({
     shiftsLoading, 
     onClearSelectedShift 
 }) => {
-    const { exportShift } = useCSVExport();
     const isAdmin = user?.role === 'admin';
 
     const getStatusInfo = (status) => {

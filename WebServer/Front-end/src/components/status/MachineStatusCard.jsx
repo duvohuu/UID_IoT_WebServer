@@ -28,7 +28,7 @@ import {
     CheckCircle as ConnectedIcon,
 } from '@mui/icons-material';
 
-const MachineStatusCard = ({ machine, index, user, onClick, onDelete }) => {
+const MachineStatusCard = ({ machine, user, onClick, onDelete }) => {
     const theme = useTheme();
     const isConnected = machine.isConnected;
     const isOnline = machine.status === 'online' && isConnected;

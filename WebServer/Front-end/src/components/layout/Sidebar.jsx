@@ -103,7 +103,7 @@ const Sidebar = ({ open }) => {
                 })}
             >
                 <ListItemIcon
-                    sx={(theme) => ({
+                    sx={()=> ({
                         minWidth: 40,
                         mr: open ? 2.5 : 'auto',
                         justifyContent: 'center',

@@ -63,10 +63,9 @@ const StatusPage = ({ user }) => {
                 
                 const result = await getMachines();
                 if (result.success && result.data && result.data.length > 0) {
-                    console.log("✅ Machines loaded from API:", result.data.length);
+                    console.log("Machines loaded from API:", result.data.length);
                     
                     const sortedMachines = result.data.sort((a, b) => {
-                        // Extract số từ machineId (VD: MACHINE_001 -> 1, MACHINE_002 -> 2)
                         const getNumFromMachineId = (machineId) => {
                             const match = machineId.match(/\d+/);
                             return match ? parseInt(match[0]) : 0;
@@ -153,14 +152,13 @@ const StatusPage = ({ user }) => {
         try {
             const result = await getMachines();
             if (result.success && result.data) {
-                // ✅ SORT LẠI SAU KHI XÓA
                 const sortedMachines = result.data.sort((a, b) => {
                     const getNumFromMachineId = (machineId) => {
                         const match = machineId.match(/\d+/);
                         return match ? parseInt(match[0]) : 0;
                     };
                     return getNumFromMachineId(a.machineId) - getNumFromMachineId(b.machineId);
-                });
+                });``
                 
                 setMachines(sortedMachines);
                 console.log("✅ Machine list refreshed and sorted after deletion");
