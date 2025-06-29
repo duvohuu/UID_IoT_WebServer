@@ -1,13 +1,12 @@
 import { useState, useCallback } from 'react';
 import { MONITORING_DATA_CONFIG, ADMIN_DATA_CONFIG } from '../config/machineDataConfig';
-import { processCombinedData } from '../utils/dataProcessing';
 
 export const useCSVExport = () => {
     const [isExporting, setIsExporting] = useState(false);
 
     const getStatusInfo = (status) => {
         switch (status) {
-            case 'completed':
+            case 'complete':
                 return { label: 'Hoàn thành', color: 'success', icon: '✅' };
             case 'incomplete':
                 return { label: 'Chưa hoàn chỉnh', color: 'warning', icon: '⚠️' };
@@ -30,17 +29,6 @@ export const useCSVExport = () => {
         const config = MONITORING_DATA_CONFIG[registerKey] || ADMIN_DATA_CONFIG[registerKey];
         if (!config) return 'N/A';
 
-        const processedData = processCombinedData(combinedData, { [registerKey]: config }, machine);
-        let value = processedData[registerKey];
-
-        // Format giá trị theo type
-        if (config.type === 'status' && config.values && config.values[value]) {
-            return config.values[value].label;
-        } else if (config.type === 'numeric') {
-            return value || 0;
-        } else {
-            return value || 'N/A';
-        }
     };
 
     // Hàm lấy giá trị raw từ finalData
@@ -146,7 +134,7 @@ export const useCSVExport = () => {
                 // Ghi chú dựa trên trạng thái
                 let note = '';
                 switch (shift.status) {
-                    case 'completed':
+                    case 'complete':
                         note = 'Ca hoàn thành tốt';
                         break;
                     case 'incomplete':
@@ -232,7 +220,7 @@ export const useCSVExport = () => {
             const totalWeight = sortedShiftsData.reduce((sum, shift) => sum + Number(shift.totalWeightFilled || 0), 0);
             const totalDuration = sortedShiftsData.reduce((sum, shift) => sum + Number(shift.duration || 0), 0);
             const avgEfficiency = sortedShiftsData.reduce((sum, shift) => sum + Number(shift.efficiency || 0), 0) / sortedShiftsData.length;
-            const completedShifts = sortedShiftsData.filter(shift => shift.status === 'completed').length;
+            const completedShifts = sortedShiftsData.filter(shift => shift.status === 'complete').length;
             
             allCsvData.push(['Tổng số ca', sortedShiftsData.length]);
             allCsvData.push(['Số ca hoàn thành', completedShifts]);

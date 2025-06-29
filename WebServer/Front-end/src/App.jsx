@@ -14,14 +14,19 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const App = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [mode, setMode] = useState('light');
+    const [mode, setMode] = useState(() => {
+        return localStorage.getItem('themeMode') || 'light';
+    });
     const [user, setUser] = useState(() => {
         const savedUser = localStorage.getItem('user');
         return savedUser ? JSON.parse(savedUser) : null;
     });
     const [loading, setLoading] = useState(true);
 
-    // Kiểm tra token hợp lệ khi ứng dụng khởi động
+    useEffect(() => {
+        localStorage.setItem('themeMode', mode);
+    }, [mode]);
+
     useEffect(() => {
         const verifyToken = async () => {
             try {
@@ -94,7 +99,6 @@ const App = () => {
                             <Route path="/status" element={<StatusPage user={user} />} />
                             <Route path="/setting" element={<SettingPage user={user} mode={mode} setMode={setMode} />} />
                             <Route path="/machine/:ip" element={<MachineDetailPage user={user} />} />
-                            <Route path="/" element={<Navigate to="/status" replace />} />
                         </Routes>
                     </Box>
                 </Box>

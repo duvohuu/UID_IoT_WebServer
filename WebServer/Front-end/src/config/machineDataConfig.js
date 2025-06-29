@@ -1,3 +1,5 @@
+// Front-end/src/config/machineDataConfig.js
+
 import {
     PlayArrow as RunningIcon,
     Stop as StoppedIcon,
@@ -7,350 +9,220 @@ import {
     LocalDrink as BottleIcon,
     GpsFixed as TargetIcon,
     Memory as AnalogIcon,
-    Calculate as GainIcon,
-    Straighten as OffsetIcon,
     Speed as FrequencyIcon,
-    Timer as TimerIcon,
-    Tune as TuneIcon
+    Tune as TuneIcon,
+    LinearScale as LoadcellIcon,
+    Error as ErrorIcon,
+    Engineering as EngineeringIcon
+
 } from '@mui/icons-material';
 
-// Data monitoring - Hiển thị cho tất cả user (40001-40007)
+// MONITORING DATA - Hiển thị cho tất cả user (từ WorkShift fields)
 export const MONITORING_DATA_CONFIG = {
-    '40001': {
+    // Trạng thái máy từ processed fields
+    machineStatus: {
         title: 'Trạng thái hoạt động máy',
         icon: RunningIcon,
         type: 'status',
         values: {
             0: { label: 'Máy đang dừng', color: 'warning' },
-            1: { label: 'Máy đang hoạt động', color: 'success' }
+            1: { label: 'Máy đang hoạt động', color: 'success' },
+            2: { label: 'Tạm dừng', color: 'info' }
         }
     },
-    '40002': {
+    saltTankStatus: {
         title: 'Trạng thái bồn cấp muối',
         icon: TankIcon,
         type: 'status',
         values: {
             0: { label: 'Chưa đầy', color: 'warning' },
             1: { label: 'Đã đầy', color: 'success' }
-        },
+        }
     },
-    '40003': {
+    saltType: {
         title: 'Loại muối đang chiết',
         icon: SaltIcon,
         type: 'status',
         values: {
             0: { label: 'Muối hạt', color: 'info' },
-            1: { label: 'Muối nhuyễn', color: 'primary' }
-        },
+            1: { label: 'Muối mịn', color: 'primary' }
+        }
     },
-    '40007': {
+    targetWeight: {
+        title: 'Khối lượng mục tiêu',
+        icon: TargetIcon,
+        type: 'numeric',
+        unit: 'Kg',
+        range: '0 - 1500'
+    },
+    totalWeightFilled: {
+        title: 'Tổng khối lượng đã chiết',
+        icon: WeightIcon,
+        type: 'numeric',
+        unit: 'kg',
+        range: '0 - 99999.99'
+    },
+    totalBottlesFilled: {
         title: 'Tổng số chai đã chiết',
         icon: BottleIcon,
         type: 'numeric',
         unit: 'chai',
-        range: '0 - 65535',
+        range: '0 - 65535'
     },
-    'totalWeightFilled': {
-        title: 'Tổng khối lượng đã chiết',
-        icon: WeightIcon,
-        type: 'numeric',
-        unit: 'Kg',
-        source: 'shiftInfo',
-        range: '0 - 99999.99'
-    },
-    '40008': {
+    activeLinesCount: {
         title: 'Số line hoạt động',
         icon: AnalogIcon,
         type: 'status',
         values: {
             0: { label: 'Cả 2 line đều dừng', color: 'error' },
-            1: { label: 'Line A hoạt động', color: 'warning' },
-            2: { label: 'Line B hoạt động', color: 'warning' },
+            1: { label: 'Chỉ Line A', color: 'warning' },
+            2: { label: 'Chỉ Line B', color: 'warning' },
             3: { label: 'Cả 2 line đều hoạt động', color: 'success' }
-        },
-    }
+        }
+    },
+    errorCode: {
+        title: 'Mã lỗi hệ thống',
+        icon: ErrorIcon,
+        type: 'status',
+        values: {
+            0: { label: 'Không có lỗi', color: 'success' },
+            1: { label: 'Lỗi loadcell', color: 'error' },
+            3: { label: 'Lỗi motor', color: 'error' },
+            5: { label: 'Lỗi cảm biến', color: 'warning' },
+        }
+    },
+    operatorName: {
+        title: 'Tên người vận hành',
+        icon: EngineeringIcon,
+        type: 'text',
+        description: 'Nhân viên phụ trách ca này'
+    },
 };
 
-// Data for developing - Chỉ admin mới xem được (40009-40048)
+// ADMIN DATA - Chỉ admin mới xem được (từ WorkShift nested fields + raw registers)
 export const ADMIN_DATA_CONFIG = {
-    // ID value (40009-40010)
-    '40009': {
-        title: 'ID máy (Low)',
-        icon: AnalogIcon,
-        type: 'numeric',
-        unit: '',
-        range: '0 - 65535'
-    },
-    '40010': {
-        title: 'ID máy (High)',
-        icon: AnalogIcon,
-        type: 'numeric',
-        unit: ''
-    },
-    // Loadcell 1 Gain & Offset (40012-40015)
-    '40012': {
-        title: 'Gain Loadcell 1 (Low)',
-        icon: GainIcon,
-        type: 'numeric',
-        unit: '',
-        range: '0 - 9.9999'
-    },
-    '40013': {
-        title: 'Gain Loadcell 1 (High)',
-        icon: GainIcon,
-        type: 'numeric',
-        unit: ''
-    },
-    '40014': {
-        title: 'Offset Loadcell 1 (Low)',
-        icon: OffsetIcon,
-        type: 'numeric',
-        unit: '',
-        range: '0 - 99.9999'
-    },
-    '40015': {
-        title: 'Offset Loadcell 1 (High)',
-        icon: OffsetIcon,
-        type: 'numeric',
-        unit: ''
-    },
-    
-    // Loadcell 2 Gain & Offset (40016-40019)
-    '40016': {
-        title: 'Gain Loadcell 2 (Low)',
-        icon: GainIcon,
-        type: 'numeric',
-        unit: '',
-        range: '0 - 9.9999'
-    },
-    '40017': {
-        title: 'Gain Loadcell 2 (High)',
-        icon: GainIcon,
-        type: 'numeric',
-        unit: ''
-    },
-    '40018': {
-        title: 'Offset Loadcell 2 (Low)',
-        icon: OffsetIcon,
-        type: 'numeric',
-        unit: '',
-        range: '0 - 99.9999'
-    },
-    '40019': {
-        title: 'Offset Loadcell 2 (High)',
-        icon: OffsetIcon,
-        type: 'numeric',
-        unit: ''
-    },
-    
-    // Loadcell 3 Gain & Offset (40020-40023)
-    '40020': {
-        title: 'Gain Loadcell 3 (Low)',
-        icon: GainIcon,
-        type: 'numeric',
-        unit: '',
-        range: '0 - 9.9999'
-    },
-    '40021': {
-        title: 'Gain Loadcell 3 (High)',
-        icon: GainIcon,
-        type: 'numeric',
-        unit: ''
-    },
-    '40022': {
-        title: 'Offset Loadcell 3 (Low)',
-        icon: OffsetIcon,
-        type: 'numeric',
-        unit: '',
-        range: '0 - 99.9999'
-    },
-    '40023': {
-        title: 'Offset Loadcell 3 (High)',
-        icon: OffsetIcon,
-        type: 'numeric',
-        unit: ''
-    },
-    
-    // Loadcell 4 Gain & Offset (40024-40027)
-    '40024': {
-        title: 'Gain Loadcell 4 (Low)',
-        icon: GainIcon,
-        type: 'numeric',
-        unit: '',
-        range: '0 - 9.9999'
-    },
-    '40025': {
-        title: 'Gain Loadcell 4 (High)',
-        icon: GainIcon,
-        type: 'numeric',
-        unit: ''
-    },
-    '40026': {
-        title: 'Offset Loadcell 4 (Low)',
-        icon: OffsetIcon,
-        type: 'numeric',
-        unit: '',
-        range: '0 - 99.9999'
-    },
-    '40027': {
-        title: 'Offset Loadcell 4 (High)',
-        icon: OffsetIcon,
-        type: 'numeric',
-        unit: ''
-    },
-    
-    // Average filling time (40028-40029)
-    '40028': {
-        title: 'Thời gian chiết TB (Low)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 's',
-        range: '0 - 99.9'
-    },
-    '40029': {
-        title: 'Thời gian chiết TB (High)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 's'
-    },
-    
-    // Stepper motor frequencies (40030-40033)
-    '40030': {
+    // MOTOR CONTROL parameters (từ motorControl object)
+    'motorControl.granularSalt.highFrequency': {
         title: 'Tần số cao - Muối hạt',
         icon: FrequencyIcon,
         type: 'numeric',
         unit: 'Hz',
         range: '0 - 2000'
     },
-    '40031': {
+    'motorControl.granularSalt.lowFrequency': {
         title: 'Tần số thấp - Muối hạt',
         icon: FrequencyIcon,
         type: 'numeric',
         unit: 'Hz',
         range: '0 - 2000'
     },
-    '40032': {
-        title: 'Tần số cao - Muối nhuyễn',
+    'motorControl.fineSalt.highFrequency': {
+        title: 'Tần số cao - Muối mịn',
         icon: FrequencyIcon,
         type: 'numeric',
         unit: 'Hz',
         range: '0 - 2000'
     },
-    '40033': {
-        title: 'Tần số thấp - Muối nhuyễn',
+    'motorControl.fineSalt.lowFrequency': {
+        title: 'Tần số thấp - Muối mịn',
         icon: FrequencyIcon,
         type: 'numeric',
         unit: 'Hz',
         range: '0 - 2000'
     },
-    
-    // Motor control parameters (40034-40036)
-    '40034': {
+    'motorControl.accelerationTime': {
         title: 'Thời gian tăng/giảm tốc',
         icon: TuneIcon,
         type: 'numeric',
         unit: 'ms',
         range: '0 - 2000'
     },
-    '40035': {
-        title: 'Độ chênh lệch KL - Muối hạt',
+    'motorControl.granularSaltThreshold': {
+        title: 'Ngưỡng chênh lệch - Muối hạt',
         icon: TuneIcon,
         type: 'numeric',
         unit: 'g',
         range: '0 - 100'
     },
-    '40036': {
-        title: 'Độ chênh lệch KL - Muối nhuyễn',
+    'motorControl.fineSaltThreshold': {
+        title: 'Ngưỡng chênh lệch - Muối mịn',
         icon: TuneIcon,
         type: 'numeric',
         unit: 'g',
         range: '0 - 100'
     },
 
-    // Add more parameters as needed (40037-40048)
-    '40037': {
-        title: 'Thời gian bắt đầu ca (giây)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 'second',
-        range: '0 - 59'
+    loadcell1: {
+        title: 'Loadcell 1',
+        icon: LoadcellIcon,
+        type: 'loadcell_single',
+        description: 'Cấu hình gain và offset loadcell số 1'
     },
-    '40038': {
-        title: 'Thời gian bắt đầu ca (phút)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 'minute',
-        range: '0 - 59'
+    loadcell2: {
+        title: 'Loadcell 2',
+        icon: LoadcellIcon,
+        type: 'loadcell_single',
+        description: 'Cấu hình gain và offset loadcell số 2'
     },
-    '40039': {
-        title: 'Thời gian bắt đầu ca (giờ)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 'hour',
-        range: '0 - 23'
+    loadcell3: {
+        title: 'Loadcell 3',
+        icon: LoadcellIcon,
+        type: 'loadcell_single',
+        description: 'Cấu hình gain và offset loadcell số 3'
     },
-    '40040': {
-        title: 'Thời gian bắt đầu ca (ngày)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 'day',
-        range: '1 - 31'
+    loadcell4: {
+        title: 'Loadcell 4',
+        icon: LoadcellIcon,
+        type: 'loadcell_single',
+        description: 'Cấu hình gain và offset loadcell số 4'
     },
-    '40041': {
-        title: 'Thời gian bắt đầu ca (tháng)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 'month',
-        range: '1 - 12'
+};
+
+// ELPER: Get field title by key (for debugging)
+export const getFieldTitle = (key, isAdmin = false) => {
+    const config = isAdmin ? ADMIN_DATA_CONFIG : MONITORING_DATA_CONFIG;
+    return config[key]?.title || `Unknown field: ${key}`;
+};
+
+// HELPER: Get all field keys
+export const getAllFieldKeys = (isAdmin = false) => {
+    const config = isAdmin ? ADMIN_DATA_CONFIG : MONITORING_DATA_CONFIG;
+    return Object.keys(config);
+};
+
+// HELPER: Check if field requires admin access
+export const isAdminOnlyField = (key) => {
+    return Object.keys(ADMIN_DATA_CONFIG).includes(key);
+};
+
+// STATUS VALUES mapping (for backward compatibility)
+export const STATUS_VALUES = {
+    MACHINE_STATUS: {
+        0: { label: 'Máy đang dừng', color: 'warning' },
+        1: { label: 'Máy đang hoạt động', color: 'success' },
+        2: { label: 'Tạm dừng', color: 'info' }
     },
-    '40042': {
-        title: 'Thời gian bắt đầu ca (năm)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 'year',
-        range: '2000 - 2099'
+    SALT_TANK_STATUS: {
+        0: { label: 'Chưa đầy', color: 'warning' },
+        1: { label: 'Đã đầy', color: 'success' }
     },
-    '40043': {
-        title: 'Thời gian kết thúc ca (giây)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 'second',
-        range: '0 - 59'
+    SALT_TYPE: {
+        0: { label: 'Muối hạt', color: 'info' },
+        1: { label: 'Muối mịn', color: 'primary' }
     },
-    '40044': {
-        title: 'Thời gian kết thúc ca (phút)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 'minute',
-        range: '0 - 59'
-    },
-    '40045': {
-        title: 'Thời gian kết thúc ca (giờ)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 'hour',
-        range: '0 - 23'
-    },
-    '40046': {
-        title: 'Thời gian kết thúc ca (ngày)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 'day',
-        range: '1 - 31'
-    },
-    '40047': {
-        title: 'Thời gian kết thúc ca (tháng)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 'month',
-        range: '1 - 12'
-    },
-    '40048': {
-        title: 'Thời gian kết thúc ca (năm)',
-        icon: TimerIcon,
-        type: 'numeric',
-        unit: 'year',
-        range: '2000 - 2099'
-    },
-    
+    ACTIVE_LINES: {
+        0: { label: 'Cả 2 line đều dừng', color: 'error' },
+        1: { label: 'Chỉ Line A', color: 'warning' },
+        2: { label: 'Chỉ Line B', color: 'warning' },
+        3: { label: 'Cả 2 line đều hoạt động', color: 'success' }
+    }
+};
+
+export default {
+    MONITORING_DATA_CONFIG,
+    ADMIN_DATA_CONFIG,
+    STATUS_VALUES,
+    getFieldTitle,
+    getAllFieldKeys,
+    isAdminOnlyField
 };

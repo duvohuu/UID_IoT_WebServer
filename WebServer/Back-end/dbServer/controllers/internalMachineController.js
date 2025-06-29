@@ -76,12 +76,10 @@ export const deleteMachine = async (req, res) => {
         const machineId = machineToDelete.machineId;
         console.log(`\n🔄 Processing machine: ${machineId}`);
         
-        // ✅ BƯỚC 1: XÓA VĨNH VIỄN TẤT CẢ WORKSHIFT (GIỐNG SCRIPT)
         console.log(`   🗑️ Permanently deleting ALL work shifts for ${machineId}...`);
         const deletedShifts = await WorkShift.deleteMany({ machineId: machineId });
         console.log(`   ✅ PERMANENTLY DELETED ${deletedShifts.deletedCount} work shifts`);
         
-        // ✅ BƯỚC 2: VERIFY - KIỂM TRA LẠI (GIỐNG SCRIPT)
         const remainingShifts = await WorkShift.find({ machineId: machineId });
         if (remainingShifts.length > 0) {
             console.log(`   ⚠️  WARNING: Still found ${remainingShifts.length} shifts. Force deleting...`);
@@ -89,13 +87,11 @@ export const deleteMachine = async (req, res) => {
             console.log(`   🔧 Force deleted remaining shifts`);
         }
         
-        // ✅ BƯỚC 3: XÓA MACHINE (GIỐNG SCRIPT)
         const deletedMachine = await Machine.findByIdAndDelete(req.params.id);
         if (deletedMachine) {
             console.log(`   ✅ PERMANENTLY DELETED machine: ${deletedMachine.machineId} - ${deletedMachine.name}`);
         }
         
-        // ✅ FINAL VERIFICATION (GIỐNG SCRIPT)
         const finalCheck = await WorkShift.find({ machineId: machineId });
         console.log(`   🔍 Final verification: ${finalCheck.length} remaining shifts (should be 0)`);
         

@@ -16,15 +16,15 @@ console.log('📍 MONGO_URI:', process.env.MONGO_URI ? 'Found' : 'Not found');
 
 // Kết nối DB
 await mongoose.connect(process.env.MONGO_URI);
-console.log('✅ Connected to MongoDB');
+console.log('Connected to MongoDB');
 
 // Xóa tất cả dữ liệu cũ
-console.log('🗑️ Clearing all existing data...');
+console.log('Clearing all existing data...');
 await User.deleteMany();
 await Machine.deleteMany();
 
-// ✅ TẠO USER
-console.log('👥 Creating user...');
+// TẠO USER
+console.log('Creating user...');
 const admin = await User.create({
     userId: 'du.vohuudu',
     username: 'ADMIN',
@@ -34,10 +34,10 @@ const admin = await User.create({
     avatar: null
 });
 
-console.log(`✅ Created user: ${admin.username} (${admin.email}) - Role: ${admin.role}`);
+console.log(`Created user: ${admin.username} (${admin.email}) - Role: ${admin.role}`);
 
-// ✅ TẠO MACHINE
-console.log('🔧 Creating machine...');
+// TẠO MACHINE
+console.log('Creating machine...');
 const machine = await Machine.create({
     machineId: 'MACHINE_001',
     name: 'Máy Test',
@@ -75,15 +75,15 @@ const machine = await Machine.create({
     errorCount: 0
 });
 
-console.log(`✅ Created machine: ${machine.name} (${machine.ip})`);
+console.log(`Created machine: ${machine.name} (${machine.ip})`);
 
-// ✅ HIỂN THỊ TỔNG KẾT
-console.log('\n🎉 SEEDING COMPLETED!');
+// HIỂN THỊ TỔNG KẾT
+console.log('\nSEEDING COMPLETED!');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log(`👤 User: ${admin.username} (${admin.email})`);
-console.log(`🔧 Machine: ${machine.name} (${machine.ip})`);
+console.log(`User: ${admin.username} (${admin.email})`);
+console.log(`Machine: ${machine.name} (${machine.ip})`);
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
 await mongoose.disconnect();
-console.log('👋 Disconnected from MongoDB');
-console.log('🚀 Now you can start the servers and test login!');
+console.log('Disconnected from MongoDB');
+console.log('Now you can start the servers and test login!');

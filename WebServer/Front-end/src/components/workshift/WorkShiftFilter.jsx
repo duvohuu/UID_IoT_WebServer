@@ -4,7 +4,7 @@ import { Box, Typography, Chip } from '@mui/material';
 const WorkShiftFilter = ({ shiftFilter, onShiftFilterChange }) => {
     const statusOptions = [
         { value: 'all', label: 'Tất cả', color: 'default' },
-        { value: 'completed', label: 'Hoàn thành', color: 'success' },
+        { value: 'complete', label: 'Hoàn thành', color: 'success' },
         { value: 'incomplete', label: 'Chưa hoàn chỉnh', color: 'warning' },
         { value: 'active', label: 'Đang hoạt động', color: 'info' }
     ];

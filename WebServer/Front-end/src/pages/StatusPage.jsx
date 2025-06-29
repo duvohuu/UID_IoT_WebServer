@@ -51,7 +51,7 @@ const StatusPage = ({ user }) => {
             console.log('📡 Shift status changed:', shiftUpdate);
             showSnackbar(
                 `Ca ${shiftUpdate.shiftId}: ${shiftUpdate.status}`, 
-                shiftUpdate.status === 'completed' ? 'success' : 'warning'
+                shiftUpdate.status === 'complete' ? 'success' : 'warning'
             );
         });
         setSocket(newSocket);

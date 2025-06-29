@@ -1,3 +1,5 @@
+// Front-end/src/components/machine/MachineDataDisplay.jsx
+
 import React from 'react';
 import { 
     Card, 
@@ -15,10 +17,8 @@ import {
     Download as DownloadIcon 
 } from '@mui/icons-material';
 import { MONITORING_DATA_CONFIG, ADMIN_DATA_CONFIG } from '../../config/machineDataConfig';
-import { processCombinedData } from '../../utils/dataProcessing';
 
 const MachineDataDisplay = ({ 
-    machine, 
     selectedShiftData, 
     user, 
     workShifts, 
@@ -29,7 +29,7 @@ const MachineDataDisplay = ({
 
     const getStatusInfo = (status) => {
         switch (status) {
-            case 'completed':
+            case 'complete':
                 return { label: 'Hoàn thành', color: 'success', icon: '✅' };
             case 'incomplete':
                 return { label: 'Chưa hoàn chỉnh', color: 'warning', icon: '⚠️' };
@@ -42,6 +42,81 @@ const MachineDataDisplay = ({
         }
     };
 
+    // Get field value from WorkShift object
+    const getFieldValue = (data, key) => {
+        if (key.includes('.')) {
+            return key.split('.').reduce((obj, path) => obj?.[path], data) || 0;
+        } else if (key === 'loadcellConfigs') {
+            return data.loadcellConfigs || [];
+        } else if (key.startsWith('loadcell') && key.match(/^loadcell[1-4]$/)) {
+            const loadcellNumber = parseInt(key.replace('loadcell', ''));
+            const configs = data.loadcellConfigs || [];
+            return configs.find(config => config.loadcellId === loadcellNumber) || null;
+        } else {
+            return data[key] || 0;
+        }
+    };
+
+    // Render field value
+    const renderFieldValue = (value, fieldConfig) => {
+        if (fieldConfig.type === 'status' && fieldConfig.values) {
+            return (
+                <Chip 
+                    label={fieldConfig.values[value]?.label || 'Không xác định'}
+                    color={fieldConfig.values[value]?.color || 'default'}
+                    size="small"
+                />
+            );
+        } else if (fieldConfig.type === 'loadcell_single') {
+            if (!value) {
+                return (
+                    <Box>
+                        <Typography variant="body2" color="warning.main">
+                            ⚠️ Chưa cấu hình
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                            Gain: 0, Offset: 0
+                        </Typography>
+                    </Box>
+                );
+            }
+            
+            const isCalibrated = value.gain !== 0 || value.offset !== 0;
+            return (
+                <Box>
+                    <Typography 
+                        variant="body2" 
+                        sx={{ 
+                            fontWeight: 500,
+                            color: isCalibrated ? 'success.main' : 'warning.main'
+                        }}
+                    >
+                        {/* {isCalibrated ? '✅ Đã hiệu chuẩn' : '⚠️ Chưa hiệu chuẩn'} */}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                        Gain: <Typography component="span" variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                            {Number(value.gain || 0).toExponential(2)}
+                        </Typography>
+                    </Typography>
+
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        Offset: <Typography component="span" variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                            {Number(value.offset || 0).toExponential(2)}
+                        </Typography>
+                    </Typography>
+                </Box>
+            );
+        } else if (fieldConfig.type === 'text') {
+            return value || 'Chưa xác định';
+        } else if (fieldConfig.type === 'percentage') {
+            return `${Number(value || 0).toFixed(1)}%`;
+        } else if (fieldConfig.type === 'numeric') {
+            return `${Number(value || 0).toFixed(2)} ${fieldConfig.unit || ''}`;
+        } else {
+            return `${value || 0} ${fieldConfig.unit || ''}`;
+        }
+    };
+
     const getDisplayData = (dataType = 'monitoring') => {
         if (selectedShiftData) {
             return {
@@ -49,9 +124,7 @@ const MachineDataDisplay = ({
                     ? `📊 Dữ liệu ca: ${selectedShiftData.shiftId}`
                     : `🔧 Dữ liệu phát triển ca: ${selectedShiftData.shiftId}`,
                 isSelectedShift: true,
-                data: dataType === 'monitoring' 
-                    ? selectedShiftData.finalData?.monitoringData || {}
-                    : selectedShiftData.finalData?.adminData || {},
+                data: selectedShiftData,
                 shiftInfo: selectedShiftData,
                 statusInfo: getStatusInfo(selectedShiftData.status)
             };
@@ -135,7 +208,6 @@ const MachineDataDisplay = ({
                                 <Chip label="Admin Only" size="small" color="secondary" />
                             )}
                             
-                            {/* Status chip */}
                             {displayData.statusInfo && (
                                 <Chip 
                                     label={displayData.statusInfo.label}
@@ -147,7 +219,6 @@ const MachineDataDisplay = ({
                         </Box>
                         
                         <Box sx={{ display: 'flex', gap: 1 }}>                            
-                            {/* Clear button */}
                             <Button
                                 variant="outlined"
                                 size="small"
@@ -160,7 +231,7 @@ const MachineDataDisplay = ({
                         </Box>
                     </Box>
 
-                    {/* Thông tin cơ bản ca */}
+                    {/* Thông tin cơ bản ca với safe formatting */}
                     {dataType === 'monitoring' && (
                         <Box sx={{ 
                             mb: 3, 
@@ -174,51 +245,26 @@ const MachineDataDisplay = ({
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                     <Typography variant="caption" color="text.secondary">Thời gian bắt đầu</Typography>
                                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                        {displayData.shiftInfo.startTime ? new Date(displayData.shiftInfo.startTime).toLocaleString('vi-VN') : 'N/A'}
+                                        {new Date (displayData.shiftInfo.timeTracking.shiftStartTime).toLocaleString('vi-VN')}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                     <Typography variant="caption" color="text.secondary">Thời gian kết thúc</Typography>
                                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                        {displayData.shiftInfo.endTime ? new Date(displayData.shiftInfo.endTime).toLocaleString('vi-VN') : 'Đang hoạt động'}
+                                         {new Date (displayData.shiftInfo.timeTracking.shiftEndTime).toLocaleString('vi-VN')}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                    <Typography variant="caption" color="text.secondary"> Khối lượng cần chiết rót</Typography>
-                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                        {(() => {
-                                            const targetWeight = displayData.data?.['40004'] || 0;
-                                            return `${Number(targetWeight).toLocaleString('es-US', {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2
-                                            })} kg`;
-                                        })()}
-                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">Thời gian lỗi</Typography>
                                 </Grid>
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                    <Typography variant="caption" color="text.secondary">Năng suất ca làm việc</Typography>
+                                    <Typography variant="caption" color="text.secondary">Hiệu suất ca làm việc</Typography>
                                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                         {(() => {
-                                            const eff = displayData.shiftInfo.efficiency;
-                                            const weight = displayData.shiftInfo.totalWeightFilled;
-                                            const duration = displayData.shiftInfo.duration;
-                                            
-                                            // Handle null/undefined
+                                            const eff = displayData.shiftInfo?.efficiency;
                                             if (eff === null || eff === undefined) {
                                                 return 'Chưa có dữ liệu';
                                             }
-                                            
-                                            // Handle 0 efficiency
-                                            if (eff === 0) {
-                                                // Backup: manual calculation if we have data
-                                                if (weight && duration && duration > 0) {
-                                                    const manualEff = (weight / (duration / 60)).toFixed(2);
-                                                    return `${manualEff} Kg/h`;
-                                                }
-                                                return '0.00 kg/h';
-                                            }
-                                            
-                                            // Format with 2 decimals, NO toLocaleString
                                             return `${Number(eff).toFixed(2)} kg/h`;
                                         })()}
                                     </Typography>
@@ -240,13 +286,11 @@ const MachineDataDisplay = ({
                         </Alert>
                     )}
                     
-                    {/* Render data fields */}
+                    {/* Render data fields với helper functions */}
                     <Grid container spacing={2}>
                         {Object.entries(config).map(([key, fieldConfig]) => {
-                            const processedData = processCombinedData(displayData.data, { [key]: fieldConfig }, machine);
-                            const value = key === 'totalWeightFilled' 
-                                ? (displayData.shiftInfo?.totalWeightFilled || 0)
-                                : processedData[key];
+                            // ✅ USE helper function
+                            const value = getFieldValue(displayData.data, key);
                             const IconComponent = fieldConfig.icon;
                             
                             return (
@@ -266,28 +310,8 @@ const MachineDataDisplay = ({
                                                 {fieldConfig.title}
                                             </Typography>
                                             <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                                {fieldConfig.type === 'status' && fieldConfig.values 
-                                                    ? (
-                                                        <Chip 
-                                                            label={fieldConfig.values[value]?.label || 'Không xác định'}
-                                                            color={fieldConfig.values[value]?.color || 'default'}
-                                                            size="small"
-                                                        />
-                                                    )
-                                                    : fieldConfig.type === 'combined'
-                                                    ? value
-                                                    : key === 'totalWeightFilled' 
-                                                    ? `${Number(value || 0).toFixed(2)} ${fieldConfig.unit || ''}`
-                                                    : `${value || 0} ${fieldConfig.unit || ''}`
-                                                }
+                                                {renderFieldValue(value, fieldConfig)}
                                             </Typography>
-                                            
-                                            {/* Debug info cho combined fields */}
-                                            {fieldConfig.type === 'combined' && fieldConfig.calculation === 'high_low_32bit' && (
-                                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                                    Low: {displayData.data[fieldConfig.lowRegister] || 0}, High: {displayData.data[fieldConfig.highRegister] || 0}
-                                                </Typography>
-                                            )}
                                             
                                             {/* Range info */}
                                             {fieldConfig.range && (

@@ -25,7 +25,6 @@ export const getWorkShifts = async (req, res) => {
         }
         
         const shifts = await WorkShift.find(query)
-            // ✅ SỬA: Populate với machineId field
             .populate({
                 path: 'machineId',
                 select: 'name type location ip machineId',
@@ -36,7 +35,7 @@ export const getWorkShifts = async (req, res) => {
             .skip((page - 1) * limit)
             .lean();
         
-        console.log(`📊 Found ${shifts.length} shifts`);
+        console.log(`Found ${shifts.length} shifts`);
         
         const total = await WorkShift.countDocuments(query);
         
@@ -50,7 +49,7 @@ export const getWorkShifts = async (req, res) => {
         res.json(response);
         
     } catch (error) {
-        console.error('❌ Internal get work shifts error:', error);
+        console.error('Internal get work shifts error:', error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -87,7 +86,7 @@ export const getWorkShiftStats = async (req, res) => {
             if (endDate) matchQuery.startTime.$lte = new Date(endDate);
         }
         
-        // ✅ Count by status (bao gồm cả active)
+        // Count by status 
         const statusCounts = await WorkShift.aggregate([
             { $match: matchQuery },
             {
@@ -125,15 +124,15 @@ export const getWorkShiftStats = async (req, res) => {
             statusMap[item._id] = item.count;
         });
         
-        stats.completed = statusMap.completed || 0;
+        stats.complete = statusMap.complete || 0;
         stats.incomplete = statusMap.incomplete || 0;
-        stats.interrupted = statusMap.interrupted || 0;
+        stats.paused = statusMap.paused || 0;
         stats.active = statusMap.active || 0;
         
         res.json(stats);
         
     } catch (error) {
-        console.error('❌ Internal get work shift stats error:', error);
+        console.error('Internal get work shift stats error:', error);
         res.status(500).json({ message: error.message });
     }
 };

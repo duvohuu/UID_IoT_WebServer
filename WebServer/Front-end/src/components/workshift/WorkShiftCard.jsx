@@ -13,7 +13,7 @@ const WorkShiftCard = ({
     
     const getStatusInfo = (status) => {
         switch (status) {
-            case 'completed':
+            case 'complete':
                 return { 
                     label: 'Hoàn thành', 
                     color: 'success',
@@ -31,7 +31,7 @@ const WorkShiftCard = ({
                     bgColor: theme.palette.warning.main,
                     borderColor: theme.palette.warning.main
                 };
-            case 'interrupted': 
+            case 'paused': 
                 return { 
                     label: 'Bị gián đoạn', 
                     color: 'error',

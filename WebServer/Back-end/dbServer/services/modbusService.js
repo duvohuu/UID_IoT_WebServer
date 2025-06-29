@@ -14,14 +14,14 @@ class ModbusService {
     async startPolling() {
         if (this.isPolling) return;
         
-        console.log('🚀 Starting Modbus polling system...');
-        console.log(`⏰ Scan interval: ${MODBUS_CONFIG.scanInterval/1000}s`);
-        console.log(`⏱️ Timeout per machine: ${MODBUS_CONFIG.timeout/1000}s`);
+        console.log('Starting Modbus polling system...');
+        console.log(`Scan interval: ${MODBUS_CONFIG.scanInterval/1000}s`);
+        console.log(`Timeout per machine: ${MODBUS_CONFIG.timeout/1000}s`);
         
         this.isPolling = true;
         
         setTimeout(() => {
-            console.log('🔄 Starting first scan cycle...');
+            console.log('Starting first scan cycle...');
             this.scanAllMachines();
         }, 2000);
         
@@ -134,9 +134,6 @@ class ModbusService {
                 if (isResolved) return;
                 
                 if (data.length >= 9 && data[7] > 0x80) {
-                    if (machine.name.includes('ModSim')) {
-                        this.machineTransactionIds.set(machine._id, 1);
-                    }
                     await this.updateMachineStatus(machine._id, { 
                         isConnected: false, 
                         status: 'error', 
@@ -149,10 +146,10 @@ class ModbusService {
                     return;
                 }
 
-                const expectedDataLength = 9 + (48 * 2);
+                const expectedDataLength = 9 + (70 * 2);
                 if (data.length >= expectedDataLength) {
                     const registers = [];
-                    for (let i = 0; i < 48; i++) {
+                    for (let i = 0; i < 70; i++) {
                         registers[i] = data.readUInt16BE(9 + (i * 2));
                     }
                     try {
@@ -163,18 +160,18 @@ class ModbusService {
                         console.error(`[${machine.name}] workShiftService error:`, shiftError.message);
                     }
                     const parameters = {
-                        // Monitoring data (40001-40008)
+                        // Monitoring data (40001-40011)
                         monitoringData: Object.fromEntries(
-                            Array.from({length: 8}, (_, i) => [
+                            Array.from({length: 11}, (_, i) => [
                                 `4000${i + 1}`, 
                                 registers[i] || 0
                             ])
                         ),
-                        // Admin data (40009-40042)
+                        // Admin data (40012-40070)
                         adminData: Object.fromEntries(
-                            Array.from({length: 34}, (_, i) => [
-                                (40009 + i).toString(), 
-                                registers[i + 8] || 0
+                            Array.from({length: 59}, (_, i) => [
+                                (40012 + i).toString(), 
+                                registers[i + 11] || 0
                             ])
                         )
                     };
@@ -237,24 +234,21 @@ class ModbusService {
 
     createModbusRequest(machine) {
         const buffer = Buffer.alloc(12);
-        const transactionId = this.getNextTransactionId(machine._id, machine.name);
+        const transactionId = this.getNextTransactionId(machine._id);
         buffer.writeUInt16BE(transactionId, 0);
         buffer.writeUInt16BE(0, 2);
         buffer.writeUInt16BE(6, 4);
         buffer.writeUInt8(1, 6);
         buffer.writeUInt8(3, 7);
         buffer.writeUInt16BE(0, 8);
-        buffer.writeUInt16BE(48, 10);
+        buffer.writeUInt16BE(70, 10);
         return { buffer, transactionId };
     }
 
-    getNextTransactionId(machineId, machineName) {
-        const isModSim = machineName && machineName.includes('ModSim');
-        const maxId = isModSim ? 100 : MODBUS_CONFIG.resetTransactionId;
+    getNextTransactionId(machineId) {
         if (!this.machineTransactionIds.has(machineId)) this.machineTransactionIds.set(machineId, 1);
         let currentId = this.machineTransactionIds.get(machineId);
         currentId++;
-        if (currentId > maxId) currentId = 1;
         this.machineTransactionIds.set(machineId, currentId);
         return currentId;
     }
@@ -269,7 +263,7 @@ class ModbusService {
             
             if (machine) {
                 if (!updateData.isConnected && machine.isConnected) {
-                    console.log(`🚨 [${machine.name}] Detected connection loss - Notifying work shift service`);
+                    console.log(`[${machine.name}] Detected connection loss - Notifying work shift service`);
                     await workShiftService.handleConnectionLoss(machine);
                 }
                 
@@ -313,10 +307,10 @@ class ModbusService {
                 if (lastMachineStatus === 1) {
                     // Máy đang hoạt động trước khi mất kết nối -> ca chưa hoàn thiện
                     newStatus = 'incomplete';
-                    console.log(`⚠️ [${machine.name}] Shift ${activeShift.shiftId}: Machine was RUNNING before disconnect -> INCOMPLETE`);
+                    console.log(`[${machine.name}] Shift ${activeShift.shiftId}: Machine was RUNNING before disconnect -> INCOMPLETE`);
                 } else {
                     // Máy đã dừng trước khi mất kết nối -> ca hoàn thiện
-                    newStatus = 'completed';
+                    newStatus = 'complete';
                     activeShift.endTime = new Date(); 
                     console.log(`[${machine.name}] Shift ${activeShift.shiftId}: Machine was STOPPED before disconnect -> COMPLETED`);
                 }
@@ -324,8 +318,8 @@ class ModbusService {
                 activeShift.status = newStatus;
                 activeShift.updatedAt = new Date();
                 
-                // Recalculate duration if completed
-                if (newStatus === 'completed' && activeShift.startTime) {
+                // Recalculate duration if completd
+                if (newStatus === 'complete' && activeShift.startTime) {
                     const endTime = activeShift.endTime || new Date();
                     activeShift.duration = Math.round((endTime - new Date(activeShift.startTime)) / (1000 * 60));
                 }
@@ -333,7 +327,7 @@ class ModbusService {
                 await activeShift.save();
                 console.log(`[${machine.name}] Updated shift ${activeShift.shiftId} status to: ${newStatus}`);
                 
-                // ✅ Notify mainServer về thay đổi status
+                // Notify mainServer về thay đổi status
                 const notificationService = (await import('./notificationService.js')).default;
                 await notificationService.notifyMainServerShiftStatusChanged(activeShift);
                 

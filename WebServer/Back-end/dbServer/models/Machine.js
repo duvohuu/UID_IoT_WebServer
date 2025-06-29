@@ -66,69 +66,7 @@ const machineSchema = new mongoose.Schema({
     uptime: { type: Number, default: 0 },
     connectedAt: { type: Date },
     disconnectedAt: { type: Date },
-    
-    // Dữ liệu từ HMI/PLC
-    parameters: {
-        // Data for monitoring (All users can view) - 40001 to 40008
-        monitoringData: {
-            '40001': { type: Number, default: 0 }, // Trạng thái hoạt động máy
-            '40002': { type: Number, default: 0 }, // Trạng thái bồn cấp muối
-            '40003': { type: Number, default: 0 }, // Loại muối đang chiết
-            '40004': { type: Number, default: 0 }, // Khối lượng cần chiết rót
-            '40005': { type: Number, default: 0 }, // Tổng KL đã chiết (Low)
-            '40006': { type: Number, default: 0 }, // Tổng KL đã chiết (High)
-            '40007': { type: Number, default: 0 }, // Tổng số chai đã chiết
-            '40008': { type: Number, default: 0 }, // Số line hoạt động
-        },
-        
-        // Admin only data - 40009 to 40036
-        adminData: {
-            // ID value (40009-40010)
-            '40009': { type: Number, default: 0 },
-            '40010': { type: Number, default: 0 },
-            
-            // Loadcell gain and offset (40012-40019)
-            '40012': { type: Number, default: 0 },
-            '40013': { type: Number, default: 0 },
-            '40014': { type: Number, default: 0 },
-            '40015': { type: Number, default: 0 },
-            '40016': { type: Number, default: 0 },
-            '40017': { type: Number, default: 0 },
-            '40018': { type: Number, default: 0 },
-            '40019': { type: Number, default: 0 },
-            
-            // Calibration values (40020-40026)
-            '40020': { type: Number, default: 0 },
-            '40021': { type: Number, default: 0 },
-            '40022': { type: Number, default: 0 },
-            '40023': { type: Number, default: 0 },
-            '40024': { type: Number, default: 0 },
-            '40025': { type: Number, default: 0 },
-            '40026': { type: Number, default: 0 },
-            
-            // Average filling time (40027-40029)
-            '40027': { type: Number, default: 0 },
-            '40028': { type: Number, default: 0 },
-            '40029': { type: Number, default: 0 },
-            
-            // Motor frequencies (40030-40033)
-            '40030': { type: Number, default: 0 },
-            '40031': { type: Number, default: 0 },
-            '40032': { type: Number, default: 0 },
-            '40033': { type: Number, default: 0 },
-            
-            // Motor control (40034-40036)
-            '40034': { type: Number, default: 0 },
-            '40035': { type: Number, default: 0 },
-            '40036': { type: Number, default: 0 }
-        },
-        
-        // Calculated fields
-        calculatedTotalWeight: { type: Number, default: 0 },
-        calculatedAvgTime: { type: Number, default: 0 },
-        timestamp: { type: String, default: '' }
-    },
-    
+
     // Error tracking
     lastError: { type: String },
     errorHistory: [{
@@ -188,8 +126,8 @@ machineSchema.pre('save', async function(next) {
 });
 
 // Index cho hiệu suất truy vấn
-machineSchema.index({ userId: 1 }); // THÊM: Index theo userId
-machineSchema.index({ ip: 1, userId: 1 }); // THÊM: Compound index
+machineSchema.index({ userId: 1 }); 
+machineSchema.index({ ip: 1, userId: 1 }); 
 machineSchema.index({ status: 1 });
 machineSchema.index({ isConnected: 1 });
 

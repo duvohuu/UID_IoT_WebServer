@@ -1,3 +1,4 @@
+// Back-end/dbServer/models/Workshift.js
 import mongoose from 'mongoose';
 
 const workShiftSchema = new mongoose.Schema({
@@ -19,46 +20,134 @@ const workShiftSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    operatorName: {
+        type: String,
+        default: ''
+    },
     machineNumber: {
         type: Number,
         required: true
+    },
+    duration: {
+        type: Number // minutes
+    },
+    status: {
+        type: String,
+        enum: ['active', 'paused', 'complete', 'incomplete'],
+        default: 'active'
+    },
+    
+    // ========================================
+    // PROCESSED MONITORING DATA (40001-40008)
+    // ========================================
+    machineStatus: {
+        type: Number,
+        enum: [0, 1, 2], // 0: Stopped, 1: Running, 2: Running but paused
+        default: 0
+    },
+    saltTankStatus: {
+        type: Number,
+        enum: [0, 1], // 0: Not full, 1: Full
+        default: 0
+    },
+    saltType: {
+        type: Number,
+        enum: [0, 1], // 0: Granular salt, 1: Fine salt
+        default: 0
+    },
+    targetWeight: {
+        type: Number, // grams (40004)
+        default: 0
+    },
+    totalWeightFilled: {
+        type: Number, // kg - combined from 40005+40006
+        default: 0
+    },
+    totalBottlesFilled: {
+        type: Number, // 40007
+        default: 0
+    },
+    activeLinesCount: {
+        type: Number,
+        enum: [0, 1, 2, 3], // 0: Both stopped, 1: Line A, 2: Line B, 3: Both active
+        default: 0
     },
     shiftNumber: {
         type: Number,
         required: true
     },
-    status: {
-        type: String,
-        enum: ['running', 'completed', 'incompleted'],
-        default: 'running'
+    errorCode: {
+        type: Number, // 40011
+        default: 0
     },
-    startTime: {
-        type: Date,
-        required: true,
-        default: Date.now
+
+    // ========================================
+    // PROCESSED ADMIN DATA 
+    // ========================================
+    
+    // Loadcell configurations (processed from pairs)
+    loadcellConfigs: [{
+        loadcellId: { type: Number, min: 1, max: 4 },
+        gain: { type: Number, default: 0 }, // Combined from Low+High registers
+        offset: { type: Number, default: 0 } // Combined from Low+High registers
+    }],
+    
+    // Motor control parameters
+    motorControl: {
+        granularSalt: {
+            highFrequency: { type: Number, default: 0 }, // 40030
+            lowFrequency: { type: Number, default: 0 }   // 40031
+        },
+        fineSalt: {
+            highFrequency: { type: Number, default: 0 }, // 40032
+            lowFrequency: { type: Number, default: 0 }   // 40033  
+        },
+        accelerationTime: { type: Number, default: 0 },      // 40034
+        granularSaltThreshold: { type: Number, default: 0 }, // 40035
+        fineSaltThreshold: { type: Number, default: 0 }      // 40036
     },
-    endTime: {
-        type: Date
+    
+    // Time tracking (processed from multiple registers)
+    timeTracking: {
+        shiftStartTime: { type: Date },
+        shiftEndTime: { type: Date }
     },
-    duration: {
-        type: Number 
+    
+    // Raw data backup (for debugging)
+    rawRegisters: {
+        monitoring: { type: Map, of: Number },
+        admin: { type: Map, of: Number }
     },
-    status: {
-        type: String,
-        enum: ['active', 'completed', 'incomplete'],
-        default: 'active'
-    },
-    totalWeightFilled: {
+    
+    // Shift ID from registers (for validation)
+    shiftIdRaw: {
         type: Number,
-        default: 0 
+        default: 0
     },
+    
+    // ========================================
+    // CALCULATED METRICS
+    // ========================================
     efficiency: {
-        type: Number,
-        default: 0 
+        type: Number, // kg/hour
+        default: 0
     },
-    finalData: {
-        type: mongoose.Schema.Types.Mixed
+    fillRate: {
+        type: Number, // bottles/hour
+        default: 0
     },
+    averageFillTime: {
+        type: Number, // seconds per bottle
+        default: 0
+    },
+    completionPercentage: {
+        type: Number, // percentage
+        default: 0
+    },
+    
+    // ========================================
+    // METADATA
+    // ========================================
     createdAt: {
         type: Date,
         default: Date.now
@@ -67,68 +156,21 @@ const workShiftSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-}, {
-    timestamps: true
 });
 
-workShiftSchema.pre('save', function(next) {
-    this.updatedAt = new Date();
-    
-    // Calculate duration (minutes)
-    if (this.startTime) {
-        const currentTime = this.endTime || new Date();
-        this.duration = Math.round((currentTime - new Date(this.startTime)) / (1000 * 60));
-    }
-    
-    // Calculate efficiency (kg/hour)
-    if (this.totalWeightFilled && this.duration && this.duration > 0) {
-        const weightInKg = this.totalWeightFilled / 1000; // Convert gram to kg
-        const durationInHours = this.duration / 60; // Convert minutes to hours
-        this.efficiency = Number((weightInKg / durationInHours).toFixed(2));
-    } else {
-        this.efficiency = 0;
-    }
-    
-    next();
-});
-
-workShiftSchema.methods.recalculateEfficiency = function() {
-    if (this.totalWeightFilled && this.duration && this.duration > 0) {
-        const weightInKg = this.totalWeightFilled / 1000;
-        const durationInHours = this.duration / 60;
-        this.efficiency = Number((weightInKg / durationInHours).toFixed(2));
-        return this.efficiency;
-    }
-    this.efficiency = 0;
-    return 0;
-};
-
-workShiftSchema.pre('save', function(next) {
-    console.log(`🔧 PRE-SAVE calculating efficiency for ${this.shiftId}:`);
-    
-    this.updatedAt = new Date();
-    
-    if (this.startTime && (!this.duration || this.duration === 0)) {
-        const currentTime = this.endTime || new Date();
-        this.duration = Math.round((currentTime - new Date(this.startTime)) / (1000 * 60));    
-    }
-    
-    if (this.totalWeightFilled && this.duration && this.duration > 0) {
-        const weightInKg = this.totalWeightFilled;
-        const durationInHours = this.duration / 60;
-        this.efficiency = Number((weightInKg / durationInHours).toFixed(2));
-    } else {
-        this.efficiency = 0;
-    }
-    
-    next();
-});
-
-
-// Index cơ bản
+// ========================================
+// INDEXES - Performance optimization
+// ========================================
 workShiftSchema.index({ shiftId: 1 }, { unique: true });
 workShiftSchema.index({ machineId: 1, startTime: -1 });
 workShiftSchema.index({ status: 1 });
+workShiftSchema.index({ userId: 1 });
+workShiftSchema.index({ efficiency: -1 });
+workShiftSchema.index({ machineNumber: 1, shiftNumber: -1 });
+workShiftSchema.index({ startTime: -1 });
+workShiftSchema.index({ duration: -1 });
+workShiftSchema.index({ totalWeightFilled: -1 });
+workShiftSchema.index({ completionPercentage: -1 });
 
 const WorkShift = mongoose.model('WorkShift', workShiftSchema);
 export default WorkShift;
