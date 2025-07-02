@@ -6,11 +6,10 @@ import { DataUtils } from '../utils/dataUtils.js';
 
 class WorkShiftService {
     constructor() {
-        this.processedShifts = new Map();
-        this.lastKnownShifts = new Map();
-        this.lastMachineStatus = new Map();
+        this.lastShiftsId = new Map();
+        this.lastMachinesStatus = new Map();
+        this.lastShiftsStatuss = new Map(); 
     }
-
     // ========================================
     // MAIN TRACKING HANDLER
     // ========================================
@@ -38,9 +37,11 @@ class WorkShiftService {
         };
 
         try {
+            const currentMachineStatus = currentParameters.monitoringData['40001'];
+            this.lastMachinesStatus.set(machine.machineId, currentMachineStatus);
             await this.checkAndCreateShiftByID(machine, currentParameters);
         } catch (error) {
-            console.error(`❌ [${machine.name}] Work shift tracking error:`, error.message);
+            console.error(`[${machine.name}] Work shift tracking error:`, error.message);
         }
     }
 
@@ -63,7 +64,7 @@ class WorkShiftService {
             return;
         }
 
-        await this.checkForShiftChange(machine, shiftId, currentParameters);
+        await this.checkForShiftChange(machine, shiftId);
 
         try {
             const existingShift = await WorkShift.findOne({ shiftId: shiftId });
@@ -88,6 +89,16 @@ class WorkShiftService {
     // ========================================
     async createNewShiftFromData(machine, shiftId, machineNumber, shiftNumber, currentParameters) {
         try {
+            const currentMachineStatus = currentParameters.monitoringData['40001'] || 0;
+
+            let initialStatus;
+            if (currentMachineStatus == 0) {
+                initialStatus = 'complete';
+            } else if (currentMachineStatus == 1) {
+                initialStatus = 'active';
+            } else {
+                initialStatus = 'paused';
+            }
             const newShift = new WorkShift({
                 shiftId,
                 machineId: machine.machineId,
@@ -95,18 +106,27 @@ class WorkShiftService {
                 userId: machine.userId,
                 machineNumber,
                 shiftNumber,
-                status: 'active',
-                pausedIntervals: [],
+                status: initialStatus,
+                pauseTracking: {
+                    totalPausedMinutes: 0,
+                    currentPausedStart: initialStatus === 'paused' ? new Date() : null,
+                    pausedHistory: []
+                }
             });
-            
-            // Set initial machine status
-            this.lastMachineStatus.set(machine.machineId, currentParameters.monitoringData['40001'] || 0);
-            
+
+            if (initialStatus === 'paused') {
+                console.log(`[${shiftId}] New shift created in PAUSED state - tracking pause from creation`);
+            }
+                        
             DataUtils.transformWorkShiftData(
                 newShift, 
                 currentParameters.monitoringData, 
                 currentParameters.adminData
             );
+
+            if (newShift.timeTracking) {
+                newShift.timeTracking.shiftPausedTime = 0;
+            }
             
             CalculationUtils.calculateAllMetrics(newShift);
             
@@ -126,30 +146,92 @@ class WorkShiftService {
     async updateExistingShift(shift, currentParameters) {
         try {
             const currentMachineStatus = currentParameters.monitoringData['40001'] || 0;
-            const lastStatus = this.lastMachineStatus.get(shift.machineId) || 0;
+            const previousStatus = shift.status;
 
-            // Handle machine status change for pause tracking
-            if (currentMachineStatus !== lastStatus) {
-                console.log(`🔄 [${shift.machineName}] Status change: ${lastStatus} → ${currentMachineStatus}`);
-                CalculationUtils.handleMachineStatusChange(shift, currentMachineStatus, new Date());
-                this.lastMachineStatus.set(shift.machineId, currentMachineStatus);
+            let newStatus;
+            if (currentMachineStatus == 0) {
+                newStatus = 'complete';
+            }
+            else if (currentMachineStatus == 1) {
+                newStatus = 'active';
+            }
+            else {
+                newStatus = 'paused';
             }
 
-            // Transform register data
+            const currentTime = new Date();
+
+            if (!shift.pauseTracking) {
+                shift.pauseTracking = {
+                    totalPausedMinutes: 0,
+                    pausedHistory: []
+                }
+            }
+
+            if (previousStatus !== newStatus) {
+                console.log(`[${shift.shiftId}] Status transition: ${previousStatus} → ${newStatus}`);
+                
+                if (newStatus === 'paused' && previousStatus !== 'paused') {
+                    shift.pauseTracking.pausedHistory.push({
+                        startTime: currentTime,
+                        endTime: null, 
+                        durationMinutes: 0
+                    });
+                    console.log(`[${shift.shiftId}] Started pause at: ${currentTime.toLocaleString('vi-VN')}`);
+                }
+                
+                if (previousStatus === 'paused' && newStatus !== 'paused') {
+                    const lastPause = shift.pauseTracking.pausedHistory[shift.pauseTracking.pausedHistory.length - 1];
+                    
+                    if (lastPause && !lastPause.endTime) {
+                        const pauseDurationMs = currentTime - lastPause.startTime;
+                        const pauseDurationMinutes = pauseDurationMs / (1000 * 60);
+                        
+                        lastPause.endTime = currentTime;
+                        lastPause.durationMinutes = pauseDurationMinutes;
+                        
+                        shift.pauseTracking.totalPausedMinutes += pauseDurationMinutes;
+                        
+                        console.log(`[${shift.shiftId}] Ended pause. Duration: ${pauseDurationMinutes} minutes. Total paused: ${shift.pauseTracking.totalPausedMinutes} minutes`);
+                    }
+                }
+            }
+
+            if (newStatus === 'paused') {
+                const currentPause = shift.pauseTracking.pausedHistory[shift.pauseTracking.pausedHistory.length - 1];
+                if (currentPause && !currentPause.endTime) {
+                    const currentPauseDurationMs = currentTime - currentPause.startTime;
+                    const currentPauseDurationMinutes = Math.floor(currentPauseDurationMs / (1000 * 60));
+                    
+                    // Cập nhật durationMinutes cho pause hiện tại
+                    currentPause.durationMinutes = currentPauseDurationMinutes;
+                    
+                    console.log(`[${shift.shiftId}] Currently paused for: ${currentPauseDurationMinutes} minutes`);
+                }
+            }
+
+            const totalPausedMinutes = shift.pauseTracking.pausedHistory.reduce((total, pause) => {
+                return total + (pause.durationMinutes || 0);
+            }, 0);
+
+            shift.pauseTracking.totalPausedMinutes = totalPausedMinutes;
             DataUtils.transformWorkShiftData(
                 shift, 
                 currentParameters.monitoringData, 
                 currentParameters.adminData
             );
+
+            if (shift.timeTracking) {
+                shift.timeTracking.shiftPausedTime = shift.pauseTracking.totalPausedMinutes || 0;
+            }
             
-            // Calculate metrics with pause consideration
             CalculationUtils.calculateAllMetrics(shift);
             
             await shift.save();
-            console.log(`🔄 Updated shift: ${shift.shiftId}`);
+            console.log(`Updated shift: ${shift.shiftId}`);
             
         } catch (error) {
-            console.error(`❌ Error updating shift ${shift.shiftId}:`, error.message);
+            console.error(`Error updating shift ${shift.shiftId}:`, error.message);
             throw error;
         }
     }
@@ -157,60 +239,27 @@ class WorkShiftService {
     // ========================================
     // SHIFT CHANGE DETECTION
     // ========================================
-    async checkForShiftChange(machine, currentShiftId, currentParameters) { 
+    async checkForShiftChange(machine, currentShiftId) { 
         try {            
-            const lastShiftId = this.lastKnownShifts.get(machine.machineId);
-            console.log(`[${machine.name}] lastShiftId: ${lastShiftId}, currentShiftId: ${currentShiftId}`);
-            
-            if (lastShiftId && lastShiftId !== currentShiftId) {
-                console.log(`[${machine.name}] SHIFT CHANGED: ${lastShiftId} → ${currentShiftId}`);
-                
+            const lastShiftId = this.lastShiftsId.get(machine.machineId);            
+            if (lastShiftId && lastShiftId !== currentShiftId) {                
                 const previousShift = await WorkShift.findOne({ shiftId: lastShiftId, status: 'active' });
                 
                 if (previousShift) {
-                    // Close any ongoing pause before ending shift
-                    const ongoingPause = previousShift.pausedIntervals?.find(interval => !interval.pauseEnd);
-                    if (ongoingPause) {
-                        console.log(`⏸️ [${machine.name}] Closing ongoing pause for shift end`);
-                        CalculationUtils.addPauseInterval(previousShift, null, new Date());
-                    }
-
-                    const previousMachineStatus = currentParameters.monitoringData['40001'] || 0;
+                    const previousShiftStatus = previousShift.machineStatus;
                     
-                    // Extract time using RegisterUtils
-                    const startTime = RegisterUtils.extractTimeFromRegisters(currentParameters.adminData || {}, 'start');
-                    const endTime = RegisterUtils.extractTimeFromRegisters(currentParameters.adminData || {}, 'end');
-                    
-                    // if (startTime) previousShift.startTime = startTime;
-                    // if (endTime) {
-                    //     previousShift.endTime = endTime;
-                    // } else {
-                    //     previousShift.endTime = new Date(); 
-                    // }
-                    
-                    // Recalculate with pause consideration
-                    CalculationUtils.calculateAllMetrics(previousShift);
-                    
-                    // Generate pause summary
-                    const pauseSummary = CalculationUtils.getPauseSummary(previousShift);
-                    console.log(`[${machine.name}] Pause summary:`, pauseSummary);
-                    
-                    if (previousMachineStatus == 0) {
+                    if (previousShiftStatus == 0) {
                         previousShift.status = 'complete';
-                        console.log(`Logic: Machine was STOPPED → COMPLETED`);
                     } else {
                         previousShift.status = 'incomplete';
-                        console.log(`Logic: Machine was RUNNING → INCOMPLETE`);
                     }
                     
-                    await previousShift.save();
-                    
-                    // Notify with enhanced data
+                    await previousShift.save()
                     try {
                         await notificationService.notifyMainServerShiftStatusChanged(previousShift, {
                             eventType: previousShift.status === 'complete' ? 'shift_completed' : 'shift_changed_incomplete',
                             reason: `Transition to ${currentShiftId} - Machine status: ${previousMachineStatus}`,
-                            pauseSummary: pauseSummary, // ✅ ADD: Include pause summary
+                            pauseSummary: pauseSummary, 
                             timestamp: new Date().toISOString()
                         });
                     } catch (notifyError) {
@@ -220,85 +269,17 @@ class WorkShiftService {
             }
             
             if (currentShiftId !== 'M1_S0') {
-                this.lastKnownShifts.set(machine.machineId, currentShiftId);
+                this.lastShiftsId.set(machine.machineId, currentShiftId);
             }
             
         } catch (error) {
             console.error(`[${machine.name}] Error in checkForShiftChange:`, error.message);
             
             if (currentShiftId !== 'M1_S0') {
-                this.lastKnownShifts.set(machine.machineId, currentShiftId);
+                this.lastShiftsId.set(machine.machineId, currentShiftId);
             }
         }
     }
-
-    async getShiftStatistics(shiftId) {
-        try {
-            const shift = await WorkShift.findOne({ shiftId });
-            if (!shift) throw new Error('Shift not found');
-
-            const pauseSummary = CalculationUtils.getPauseSummary(shift);
-            
-            return {
-                shiftId: shift.shiftId,
-                machineName: shift.machineName,
-                duration: shift.duration, // Active duration
-                totalDuration: shift.totalDuration, // Total duration
-                efficiency: shift.efficiency,
-                fillRate: shift.fillRate,
-                utilization: shift.utilization,
-                pauseSummary: pauseSummary,
-                status: shift.status,
-                startTime: shift.startTime,
-                endTime: shift.endTime
-            };
-        } catch (error) {
-            console.error('Error getting shift statistics:', error.message);
-            throw error;
-        }
-    }
-
-    // ========================================
-    // Manual pause/resume methods for external control
-    // ========================================
-    async pauseShift(shiftId, reason = 'Manual pause') {
-        try {
-            const shift = await WorkShift.findOne({ shiftId, status: 'active' });
-            if (!shift) throw new Error('Active shift not found');
-
-            CalculationUtils.addPauseInterval(shift, new Date());
-            shift.status = 'paused';
-            
-            await shift.save();
-            console.log(`Manually paused shift: ${shiftId}`);
-            
-            return shift;
-        } catch (error) {
-            console.error('Error pausing shift:', error.message);
-            throw error;
-        }
-    }
-
-    async resumeShift(shiftId) {
-        try {
-            const shift = await WorkShift.findOne({ shiftId, status: 'paused' });
-            if (!shift) throw new Error('Paused shift not found');
-
-            CalculationUtils.addPauseInterval(shift, null, new Date());
-            shift.status = 'active';
-            
-            CalculationUtils.calculateAllMetrics(shift);
-            await shift.save();
-            
-            console.log(`Manually resumed shift: ${shiftId}`);
-            
-            return shift;
-        } catch (error) {
-            console.error('Error resuming shift:', error.message);
-            throw error;
-        }
-    }
-    
 }
 
 export const workShiftService = new WorkShiftService();

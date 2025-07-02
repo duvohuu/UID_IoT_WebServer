@@ -29,7 +29,7 @@ const workShiftSchema = new mongoose.Schema({
         required: true
     },
     duration: {
-        type: Number // minutes
+        type: Number 
     },
     status: {
         type: String,
@@ -110,7 +110,8 @@ const workShiftSchema = new mongoose.Schema({
     // Time tracking (processed from multiple registers)
     timeTracking: {
         shiftStartTime: { type: Date },
-        shiftEndTime: { type: Date }
+        shiftEndTime: { type: Date },
+        shiftPausedTime: { type: Number, default: 0 } 
     },
     
     // Raw data backup (for debugging)
@@ -136,25 +137,14 @@ const workShiftSchema = new mongoose.Schema({
         type: Number, // bottles/hour
         default: 0
     },
-    averageFillTime: {
-        type: Number, // seconds per bottle
-        default: 0
-    },
-    completionPercentage: {
-        type: Number, // percentage
-        default: 0
-    },
-    
-    // ========================================
-    // METADATA
-    // ========================================
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
+
+    pauseTracking: {
+        totalPausedMinutes: { type: Number, default: 0 },
+        pausedHistory: [{
+            startTime: { type: Date, default: null },
+            endTime: { type: Date, default: null },
+            durationMinutes: { type: Number, default: 0 }
+        }]
     }
 });
 

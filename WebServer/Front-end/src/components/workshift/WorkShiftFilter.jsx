@@ -6,7 +6,8 @@ const WorkShiftFilter = ({ shiftFilter, onShiftFilterChange }) => {
         { value: 'all', label: 'Tất cả', color: 'default' },
         { value: 'complete', label: 'Hoàn thành', color: 'success' },
         { value: 'incomplete', label: 'Chưa hoàn chỉnh', color: 'warning' },
-        { value: 'active', label: 'Đang hoạt động', color: 'info' }
+        { value: 'active', label: 'Đang hoạt động', color: 'info' },
+        { value: 'paused', label: 'Tạm dừng', color: 'error' }
     ];
 
     return (

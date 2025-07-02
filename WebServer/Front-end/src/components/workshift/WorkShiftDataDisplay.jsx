@@ -1,5 +1,3 @@
-// Front-end/src/components/machine/MachineDataDisplay.jsx
-
 import React from 'react';
 import { 
     Card, 
@@ -18,7 +16,7 @@ import {
 } from '@mui/icons-material';
 import { MONITORING_DATA_CONFIG, ADMIN_DATA_CONFIG } from '../../config/machineDataConfig';
 
-const MachineDataDisplay = ({ 
+const WorkShiftDataDisplay = ({ 
     selectedShiftData, 
     user, 
     workShifts, 
@@ -33,8 +31,8 @@ const MachineDataDisplay = ({
                 return { label: 'Hoàn thành', color: 'success', icon: '✅' };
             case 'incomplete':
                 return { label: 'Chưa hoàn chỉnh', color: 'warning', icon: '⚠️' };
-            case 'interrupted':
-                return { label: 'Bị gián đoạn', color: 'error', icon: '🚨' };
+            case 'paused':
+                return { label: 'Đang tạm dừng', color: 'error', icon: '🚨' };
             case 'active':
                 return { label: 'Đang hoạt động', color: 'info', icon: '🔄' };
             default:
@@ -110,9 +108,12 @@ const MachineDataDisplay = ({
             return value || 'Chưa xác định';
         } else if (fieldConfig.type === 'percentage') {
             return `${Number(value || 0).toFixed(1)}%`;
-        } else if (fieldConfig.type === 'numeric') {
+        } else if (fieldConfig.type === 'interger') {
+            return `${Number(value || 0)} ${fieldConfig.unit || ''}`;
+        } else if (fieldConfig.type === 'float') {
             return `${Number(value || 0).toFixed(2)} ${fieldConfig.unit || ''}`;
-        } else {
+            
+        }else {
             return `${value || 0} ${fieldConfig.unit || ''}`;
         }
     };
@@ -255,7 +256,19 @@ const MachineDataDisplay = ({
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                    <Typography variant="caption" color="text.secondary">Thời gian lỗi</Typography>
+                                    <Typography variant="caption" color="text.secondary">Thời gian dừng</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                         {(() => {
+                                            const pausedTime = displayData.shiftInfo.timeTracking.shiftPausedTime;
+                                            if (pausedTime === 0 || pausedTime === null || pausedTime === undefined) {
+                                                return '0 phút';
+                                            }
+                                            if (typeof pausedTime === 'number') {
+                                                const roundedTime = Math.round(pausedTime * 10) / 10;
+                                                return `${roundedTime} phút`;
+                                            }
+                                         })()}
+                                    </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                     <Typography variant="caption" color="text.secondary">Hiệu suất ca làm việc</Typography>
@@ -289,7 +302,6 @@ const MachineDataDisplay = ({
                     {/* Render data fields với helper functions */}
                     <Grid container spacing={2}>
                         {Object.entries(config).map(([key, fieldConfig]) => {
-                            // ✅ USE helper function
                             const value = getFieldValue(displayData.data, key);
                             const IconComponent = fieldConfig.icon;
                             
@@ -367,4 +379,4 @@ const MachineDataDisplay = ({
     );
 };
 
-export default MachineDataDisplay;
+export default WorkShiftDataDisplay;

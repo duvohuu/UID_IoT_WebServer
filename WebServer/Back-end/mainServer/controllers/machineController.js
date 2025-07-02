@@ -169,7 +169,6 @@ export const deleteMachine = async (req, res) => {
         
         console.log('🗑️ MAIN SERVER: Delete machine request for ID:', req.params.id);
         
-        // ✅ GỌI DB SERVER VỚI CÙNG LOGIC NHU SCRIPT
         console.log('🗑️ MAIN SERVER: Calling DB Server to permanently delete machine and work shifts...');
         const response = await axios.delete(`${DB_SERVER_URL}/db/internal/machines/${req.params.id}`);
         

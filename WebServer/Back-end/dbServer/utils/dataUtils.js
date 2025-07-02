@@ -1,9 +1,7 @@
 import { RegisterUtils } from './registerUtils.js';
 
 export class DataUtils {
-    /**
-     * Transform raw register data into WorkShift model format
-     */
+    // Transform raw register data into WorkShift model format
     static transformWorkShiftData(shift, monitoringData, adminData) {
         // Update monitoring data (40001-40008)
         shift.machineStatus = monitoringData['40001'] || 0;
@@ -32,7 +30,8 @@ export class DataUtils {
         // Extract time tracking
         shift.timeTracking = {
             shiftStartTime: RegisterUtils.extractTimeFromRegisters(adminData, 'start'),
-            shiftEndTime: RegisterUtils.extractTimeFromRegisters(adminData, 'end')
+            shiftEndTime: RegisterUtils.extractTimeFromRegisters(adminData, 'end'),
+            shiftPausedTime: 0,
         };
         
         // Extract operator name
@@ -51,7 +50,7 @@ export class DataUtils {
     static transformLoadcellConfigs(adminData) {
         const configs = [];
         for (let i = 1; i <= 4; i++) {
-            const baseAddr = 40011 + (i - 1) * 4; // 40012, 40016, 40020, 40024
+            const baseAddr = 40012 + (i - 1) * 4; // 40012, 40016, 40020, 40024
             const gainLow = adminData[baseAddr.toString()] || 0;
             const gainHigh = adminData[(baseAddr + 1).toString()] || 0;
             const offsetLow = adminData[(baseAddr + 2).toString()] || 0;
@@ -98,26 +97,6 @@ export class DataUtils {
             lastUpdate: machine.lastUpdate,
             uptime: machine.uptime,
             parameters: machine.parameters
-        };
-    }
-
-    // Format error response
-    static formatErrorResponse(message, details = null) {
-        return {
-            success: false,
-            message,
-            error: details,
-            timestamp: new Date().toISOString()
-        };
-    }
-
-    // Format success response
-    static formatSuccessResponse(data, message = 'Success') {
-        return {
-            success: true,
-            message,
-            data,
-            timestamp: new Date().toISOString()
         };
     }
 }

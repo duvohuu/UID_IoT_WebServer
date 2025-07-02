@@ -9,6 +9,7 @@ export const useWorkShifts = (machineId) => {
     const [selectedShiftData, setSelectedShiftData] = useState(null);
     const [userHasSelectedShift, setUserHasSelectedShift] = useState(false);
     const [isFirstLoad, setIsFirstLoad] = useState(true);
+    const [userHasClearedSelection, setUserHasClearedSelection] = useState(false); 
 
     const autoSelectDefaultShift = useCallback((shifts) => {
         if (!shifts || shifts.length === 0) {
@@ -20,7 +21,7 @@ export const useWorkShifts = (machineId) => {
         const currentShiftExists = selectedShiftData && 
             shifts.some(shift => shift._id === selectedShiftData._id);
 
-        if (isFirstLoad || (!userHasSelectedShift && !selectedShiftData) || !currentShiftExists) {
+        if ((isFirstLoad || (!userHasSelectedShift && !selectedShiftData) || !currentShiftExists) && !userHasClearedSelection) {
             let defaultShift = null;
 
             // Tìm ca đang hoạt động
@@ -43,10 +44,12 @@ export const useWorkShifts = (machineId) => {
                     setIsFirstLoad(false);
                 }
             }
+        } else if (userHasClearedSelection) {
+            console.log('🚫 Auto-selection blocked - User has cleared selection');
         } else {
             console.log('👤 User has selected shift, keeping current selection:', selectedShiftData?.shiftId);
         }
-    }, [selectedShiftData, userHasSelectedShift, isFirstLoad]);
+    }, [selectedShiftData, userHasSelectedShift, isFirstLoad, userHasClearedSelection]);
 
     const fetchWorkShifts = useCallback(async (machineId) => {
         try {
@@ -83,26 +86,31 @@ export const useWorkShifts = (machineId) => {
         console.log('👤 User manually selected shift:', shift.shiftId);
         setSelectedShiftData(shift);
         setUserHasSelectedShift(true);
+        setUserHasClearedSelection(false); 
         setIsFirstLoad(false);
     }, []);
 
     const handleClearSelectedShift = useCallback(() => {
-        console.log('🗑️ User cleared shift selection');
+        console.log('🗑️ User cleared shift selection - Auto-selection DISABLED');
         setSelectedShiftData(null);
         setUserHasSelectedShift(false);
-    
-        if (workShifts && workShifts.length > 0) {
-            setTimeout(() => {
-                autoSelectDefaultShift(workShifts);
-            }, 100);
-        }
-    }, [workShifts, autoSelectDefaultShift]);
+        setUserHasClearedSelection(true); 
+    }, []);
 
     const handleRefreshShifts = useCallback(() => {
         if (machineId) {
             fetchWorkShifts(machineId);
         }
     }, [machineId, fetchWorkShifts]);
+
+    // Function to re-enable auto-selection
+    const enableAutoSelection = useCallback(() => {
+        console.log('🔄 Auto-selection re-enabled');
+        setUserHasClearedSelection(false);
+        if (workShifts && workShifts.length > 0) {
+            autoSelectDefaultShift(workShifts);
+        }
+    }, [workShifts, autoSelectDefaultShift]);
 
     // Filter shifts based on current filter
     useEffect(() => {
@@ -123,12 +131,11 @@ export const useWorkShifts = (machineId) => {
         }
     }, [machineId, fetchWorkShifts]);
 
-    // Auto-select default shift when shifts are loaded
     useEffect(() => {
-        if (workShifts && workShifts.length > 0 && !userHasSelectedShift) {
+        if (workShifts && workShifts.length > 0 && !userHasSelectedShift && !userHasClearedSelection) {
             autoSelectDefaultShift(workShifts);
         }
-    }, [workShifts, userHasSelectedShift, autoSelectDefaultShift]);
+    }, [workShifts, userHasSelectedShift, userHasClearedSelection, autoSelectDefaultShift]); 
 
     return {
         workShifts,
@@ -140,8 +147,10 @@ export const useWorkShifts = (machineId) => {
         filteredShifts,
         userHasSelectedShift,
         setUserHasSelectedShift,
+        userHasClearedSelection, 
         handleRefreshShifts,
         handleShiftClick,
-        handleClearSelectedShift
+        handleClearSelectedShift,
+        enableAutoSelection 
     };
 };

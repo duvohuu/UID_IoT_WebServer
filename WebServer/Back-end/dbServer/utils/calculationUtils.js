@@ -92,11 +92,6 @@ export class CalculationUtils {
 
         // Calculate all metrics
         shift.efficiency = this.calculateEfficiency(shift.totalWeightFilled, shift.duration);
-
-        console.log(`🔧 Calculated metrics for ${shift.shiftId}:`);
-        console.log(`   Duration: ${shift.duration} minutes`);
-        console.log(`   Efficiency: ${shift.efficiency} kg/h`);
-
         return shift;
     }
 }

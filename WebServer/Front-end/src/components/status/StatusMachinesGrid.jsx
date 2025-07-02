@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Delete as DeleteIcon, Close as CloseIcon } from '@mui/icons-material';
-import MachineStatusCard from './MachineStatusCard';
+import MachineStatusCard from '../Machine/MachineStatusCard';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { deleteMachine } from '../../api/machineAPI'; 
 

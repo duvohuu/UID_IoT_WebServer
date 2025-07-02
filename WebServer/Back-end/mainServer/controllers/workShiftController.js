@@ -16,7 +16,7 @@ export const getWorkShifts = async (req, res) => {
         
         let queryParams = { page, limit };
         
-        // Role-based filtering - SỬA LOGIC NÀY
+        // Role-based filtering
         if (currentUser.role !== 'admin') {
             // Thay vì filter theo userId, filter theo machines user được phân quyền
             if (machineId) {

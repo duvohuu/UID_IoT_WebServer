@@ -27,7 +27,7 @@ export const MONITORING_DATA_CONFIG = {
         values: {
             0: { label: 'Máy đang dừng', color: 'warning' },
             1: { label: 'Máy đang hoạt động', color: 'success' },
-            2: { label: 'Tạm dừng', color: 'info' }
+            2: { label: 'Tạm dừng', color: 'error' }
         }
     },
     saltTankStatus: {
@@ -51,21 +51,21 @@ export const MONITORING_DATA_CONFIG = {
     targetWeight: {
         title: 'Khối lượng mục tiêu',
         icon: TargetIcon,
-        type: 'numeric',
+        type: 'interger',
         unit: 'Kg',
         range: '0 - 1500'
     },
     totalWeightFilled: {
         title: 'Tổng khối lượng đã chiết',
         icon: WeightIcon,
-        type: 'numeric',
+        type: 'float',
         unit: 'kg',
         range: '0 - 99999.99'
     },
     totalBottlesFilled: {
         title: 'Tổng số chai đã chiết',
         icon: BottleIcon,
-        type: 'numeric',
+        type: 'interger',
         unit: 'chai',
         range: '0 - 65535'
     },
@@ -105,49 +105,49 @@ export const ADMIN_DATA_CONFIG = {
     'motorControl.granularSalt.highFrequency': {
         title: 'Tần số cao - Muối hạt',
         icon: FrequencyIcon,
-        type: 'numeric',
+        type: 'interger',
         unit: 'Hz',
         range: '0 - 2000'
     },
     'motorControl.granularSalt.lowFrequency': {
         title: 'Tần số thấp - Muối hạt',
         icon: FrequencyIcon,
-        type: 'numeric',
+        type: 'interger',
         unit: 'Hz',
         range: '0 - 2000'
     },
     'motorControl.fineSalt.highFrequency': {
         title: 'Tần số cao - Muối mịn',
         icon: FrequencyIcon,
-        type: 'numeric',
+        type: 'interger',
         unit: 'Hz',
         range: '0 - 2000'
     },
     'motorControl.fineSalt.lowFrequency': {
         title: 'Tần số thấp - Muối mịn',
         icon: FrequencyIcon,
-        type: 'numeric',
+        type: 'interger',
         unit: 'Hz',
         range: '0 - 2000'
     },
     'motorControl.accelerationTime': {
         title: 'Thời gian tăng/giảm tốc',
         icon: TuneIcon,
-        type: 'numeric',
+        type: 'interger',
         unit: 'ms',
         range: '0 - 2000'
     },
     'motorControl.granularSaltThreshold': {
         title: 'Ngưỡng chênh lệch - Muối hạt',
         icon: TuneIcon,
-        type: 'numeric',
+        type: 'interger',
         unit: 'g',
         range: '0 - 100'
     },
     'motorControl.fineSaltThreshold': {
         title: 'Ngưỡng chênh lệch - Muối mịn',
         icon: TuneIcon,
-        type: 'numeric',
+        type: 'interger',
         unit: 'g',
         range: '0 - 100'
     },

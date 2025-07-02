@@ -8,7 +8,7 @@ import { useWorkShifts } from '../hooks/useWorkShifts';
 import { useCSVExport } from '../hooks/useCSVExport';
 import MachineHeader from '../components/machine/MachineHeader';
 import MachineBasicInfo from '../components/machine/MachineBasicInfo';
-import MachineDataDisplay from '../components/machine/MachineDataDisplay';
+import WorkShiftDataDisplay from '../components/workshift/WorkShiftDataDisplay';
 import WorkShiftPanel from '../components/workshift/WorkShiftPanel';
 
 const MachineDetailPage = ({ user }) => {
@@ -126,7 +126,7 @@ const MachineDetailPage = ({ user }) => {
                 
                 {/* Right Column */}
                 <Grid size={{ xs: 12, md: 8 }}>
-                    <MachineDataDisplay
+                    <WorkShiftDataDisplay
                         machine={machine}
                         selectedShiftData={selectedShiftData}
                         user={user}

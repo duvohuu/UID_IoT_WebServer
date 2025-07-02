@@ -33,12 +33,12 @@ const WorkShiftCard = ({
                 };
             case 'paused': 
                 return { 
-                    label: 'Bị gián đoạn', 
+                    label: 'Đang tạm dừng', 
                     color: 'error',
-                    icon: '🚨',
-                    description: 'Ca bị gián đoạn do mất kết nối',
-                    bgColor: theme.palette.error.main,
-                    borderColor: theme.palette.error.main
+                    icon: '⏸️',
+                    description: 'Ca đang được tạm dừng',
+                    bgColor: theme.palette.error.dark,    
+                    borderColor: theme.palette.error.dark
                 };
             case 'active':
                 return { 
@@ -173,22 +173,6 @@ const WorkShiftCard = ({
                             }}
                         />
                     </Box>
-                </Box>
-
-                {/* Thêm thông tin chi tiết */}
-                <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    pt: 1,
-                    borderTop: `1px solid ${theme.palette.divider}`
-                }}>
-                    <Typography variant="caption" color="text.secondary">
-                        {shift.startTime ? new Date(shift.startTime).toLocaleDateString('vi-VN') : 'N/A'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        {shift.duration ? `${shift.duration} phút` : 'N/A'}
-                    </Typography>
                 </Box>
             </CardContent>
         </Card>

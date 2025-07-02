@@ -8,7 +8,6 @@ const getApiUrl = () => {
         return import.meta.env.VITE_API_URL;
     }
     
-    // Otherwise, use same-origin with port 5000
     const protocol = window.location.protocol;
     const hostname = window.location.hostname;
     return `${protocol}//${hostname}:5000`;

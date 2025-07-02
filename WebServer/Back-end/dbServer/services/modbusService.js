@@ -3,6 +3,7 @@ import Machine from "../models/Machine.js";
 import { MODBUS_CONFIG, NETWORK_CONFIG } from "../config/modbus.js";
 import { workShiftService } from "./workShiftService.js";
 import { notificationService } from "./notificationService.js";
+import WorkShift from "../models/Workshift.js";
 
 class ModbusService {
     constructor() {
@@ -275,68 +276,51 @@ class ModbusService {
     }
 
     async handleConnectionLoss(machine) {
-        try {
-            console.log(`🔍 [${machine.name}] Checking machine status before connection loss...`);
-            
-            const lastMachineStatus = machine.parameters?.monitoringData?.['40001'];
-            console.log(`[${machine.name}] Last machine status (40001): ${lastMachineStatus}`);
-            
-            if (lastMachineStatus !== undefined) {
-                // Cập nhật status của ca đang active
-                await this.updateActiveShiftStatus(machine, lastMachineStatus);
+        try {            
+            let lastMachineStatus = workShiftService.lastMachinesStatus.get(machine.machineId);
+            if (lastMachineStatus === undefined) {
+                lastMachineStatus = workShiftService.lastMachinesStatus.get(machine._id.toString());
             }
+            
+            const activeOrPausedShifts = await WorkShift.find({ 
+                machineId: machine.machineId, 
+                status: { $in: ['active', 'paused'] }
+            }).sort({ createdAt: -1 });
+            
+            if (activeOrPausedShifts.length > 0) {
+                for (const shift of activeOrPausedShifts) {
+                    let newStatus;
+                    
+                    if (lastMachineStatus === 1) {
+                        newStatus = 'incomplete';
+                        console.log(`[${machine.name}] Shift ${shift.shiftId}: Machine was RUNNING before disconnect -> INCOMPLETE`);
+                    } else if (lastMachineStatus === 0) {
+                        newStatus = 'complete';
+                        shift.endTime = new Date();
+                        console.log(`[${machine.name}] Shift ${shift.shiftId}: Machine was STOPPED before disconnect -> COMPLETED`);
+                    } else {
+                        newStatus = 'incomplete';
+                        console.log(`[${machine.name}] Shift ${shift.shiftId}: No machine status available -> INCOMPLETE (default)`);
+                    }
+                    
+                    shift.status = newStatus;
+                    
+                    await shift.save();
+                    console.log(`[${machine.name}] Updated shift ${shift.shiftId} status to: ${newStatus}`);
+                    
+                    const notificationService = (await import('./notificationService.js')).default;
+                    await notificationService.notifyMainServerShiftStatusChanged(shift);
+                }
+                
+                console.log(`[${machine.name}] Completed updating ${activeOrPausedShifts.length} active/paused shifts`);
+            } else {
+                console.log(`[${machine.name}] No active or paused shifts found to update`);
+            }
+            
+            console.log(`[${machine.name}] === END CONNECTION LOSS HANDLING ===`);
             
         } catch (error) {
             console.error(`[${machine.name}] Error handling connection loss:`, error.message);
-        }
-    }
-
-    async updateActiveShiftStatus(machine, lastMachineStatus) {
-        try {
-            const WorkShift = (await import('../models/Workshift.js')).default;
-            
-            // Tìm ca đang active của máy này
-            const activeShift = await WorkShift.findOne({ 
-                machineId: machine.machineId,
-                status: 'active'
-            });
-            
-            if (activeShift) {
-                let newStatus;
-                
-                if (lastMachineStatus === 1) {
-                    // Máy đang hoạt động trước khi mất kết nối -> ca chưa hoàn thiện
-                    newStatus = 'incomplete';
-                    console.log(`[${machine.name}] Shift ${activeShift.shiftId}: Machine was RUNNING before disconnect -> INCOMPLETE`);
-                } else {
-                    // Máy đã dừng trước khi mất kết nối -> ca hoàn thiện
-                    newStatus = 'complete';
-                    activeShift.endTime = new Date(); 
-                    console.log(`[${machine.name}] Shift ${activeShift.shiftId}: Machine was STOPPED before disconnect -> COMPLETED`);
-                }
-                
-                activeShift.status = newStatus;
-                activeShift.updatedAt = new Date();
-                
-                // Recalculate duration if completd
-                if (newStatus === 'complete' && activeShift.startTime) {
-                    const endTime = activeShift.endTime || new Date();
-                    activeShift.duration = Math.round((endTime - new Date(activeShift.startTime)) / (1000 * 60));
-                }
-                
-                await activeShift.save();
-                console.log(`[${machine.name}] Updated shift ${activeShift.shiftId} status to: ${newStatus}`);
-                
-                // Notify mainServer về thay đổi status
-                const notificationService = (await import('./notificationService.js')).default;
-                await notificationService.notifyMainServerShiftStatusChanged(activeShift);
-                
-            } else {
-                console.log(`[${machine.name}] No active shift found to update`);
-            }
-            
-        } catch (error) {
-            console.error(`[${machine.name}] Error updating active shift status:`, error.message);
         }
     }
     
