@@ -1,4 +1,5 @@
 import axios from "axios";
+import WorkShift from "../models/Workshift.js";
 
 class NotificationService {
     constructor() {
@@ -64,31 +65,50 @@ class NotificationService {
         }
     }
 
-    async notifyMainServerShiftStatusChanged(shift) {
+    async notifyMainServerShiftChanged(shift) {
         try {
+            const latestShift = await WorkShift.findById(shift._id);
+            if (!latestShift) {
+                console.error(`❌ Shift ${shift.shiftId} not found in database`);
+                return;
+            }
+
             const payload = {
-                shiftId: shift.shiftId,
-                machineId: shift.machineId,
-                machineName: shift.machineName,
-                status: shift.status,
-                endTime: shift.endTime,
-                duration: shift.duration,
-                efficiency: shift.efficiency,
-                totalWeightFilled: shift.totalWeightFilled,
-                totalBottlesProduced: shift.totalBottlesProduced,
-                timestamp: new Date().toISOString()
+                shiftId: latestShift.shiftId, 
+                machineId: latestShift.machineId, 
+                machineName: latestShift.machineName,
+                userId: latestShift.userId,
+                operatorName: latestShift.operatorName,
+                machineNumber: latestShift.machineNumber,
+                status: latestShift.status, 
+                machineStatus: latestShift.machineStatus,
+                saltTankStatus: latestShift.saltTankStatus,
+                saltType: latestShift.saltType,
+                targetWeight: latestShift.targetWeight, 
+                totalWeightFilled: latestShift.totalWeightFilled,
+                totalBottlesProduced: latestShift.totalBottlesProduced,
+                activeLinesCount: latestShift.activeLinesCount,
+                shiftNumber: latestShift.shiftNumber, 
+                errorCode: latestShift.errorCode,
+                motorControl: latestShift.motorControl,
+                timeTracking: latestShift.timeTracking,
+                efficiency: latestShift.efficiency,
+                pauseTracking: latestShift.pauseTracking,
+                loadcellConfigs: latestShift.loadcellConfigs,
             };
             
-            await axios.post(`${this.mainServerUrl}/api/internal/shift-status-changed`, payload, {
+            console.log(`📤 [${latestShift.machineName}] Sending notification: ${latestShift.shiftId} -> ${latestShift.status}`);
+            
+            await axios.post(`${this.mainServerUrl}/api/internal/shift-changed`, payload, {
                 timeout: 5000,
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
             
-            console.log(`📡 Notified mainServer about shift status change: ${shift.shiftId} -> ${shift.status}`);
+            console.log(`[${latestShift.machineName}] Notification sent successfully: ${latestShift.shiftId} -> ${latestShift.status}`);
         } catch (error) {
-            console.error('❌ Failed to notify mainServer about shift status change:', error.message);
+            console.error('Failed to notify mainServer about shift status change:', error.message);
         }
     }
 }

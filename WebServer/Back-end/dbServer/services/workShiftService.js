@@ -132,6 +132,12 @@ class WorkShiftService {
             
             await newShift.save();
             console.log(`[${machine.name}] Created new shift: ${shiftId}`);
+
+            try {
+                await notificationService.notifyMainServerShiftChanged(newShift);
+            } catch (notifyError) {
+                console.error(`[${machine.name}] Failed to notify new shift:`, notifyError.message);
+            }
             
             return newShift;
         } catch (error) {
@@ -170,7 +176,7 @@ class WorkShiftService {
 
             if (previousStatus !== newStatus) {
                 console.log(`[${shift.shiftId}] Status transition: ${previousStatus} → ${newStatus}`);
-                
+                shift.status = newStatus;
                 if (newStatus === 'paused' && previousStatus !== 'paused') {
                     shift.pauseTracking.pausedHistory.push({
                         startTime: currentTime,
@@ -202,8 +208,6 @@ class WorkShiftService {
                 if (currentPause && !currentPause.endTime) {
                     const currentPauseDurationMs = currentTime - currentPause.startTime;
                     const currentPauseDurationMinutes = Math.floor(currentPauseDurationMs / (1000 * 60));
-                    
-                    // Cập nhật durationMinutes cho pause hiện tại
                     currentPause.durationMinutes = currentPauseDurationMinutes;
                     
                     console.log(`[${shift.shiftId}] Currently paused for: ${currentPauseDurationMinutes} minutes`);
@@ -229,6 +233,12 @@ class WorkShiftService {
             
             await shift.save();
             console.log(`Updated shift: ${shift.shiftId}`);
+
+            try {
+                await notificationService.notifyMainServerShiftChanged(shift);
+            } catch (notifyError) {
+                console.error(`[${shift.shiftId}] Failed to notify shift change:`, notifyError.message);
+            }
             
         } catch (error) {
             console.error(`Error updating shift ${shift.shiftId}:`, error.message);
@@ -254,16 +264,12 @@ class WorkShiftService {
                         previousShift.status = 'incomplete';
                     }
                     
-                    await previousShift.save()
+                    await previousShift.save();
+
                     try {
-                        await notificationService.notifyMainServerShiftStatusChanged(previousShift, {
-                            eventType: previousShift.status === 'complete' ? 'shift_completed' : 'shift_changed_incomplete',
-                            reason: `Transition to ${currentShiftId} - Machine status: ${previousMachineStatus}`,
-                            pauseSummary: pauseSummary, 
-                            timestamp: new Date().toISOString()
-                        });
+                        await notificationService.notifyMainServerShiftChanged(previousShift);
                     } catch (notifyError) {
-                        console.error(`[${machine.name}] Notification error:`, notifyError.message);
+                        console.error(`[${machine.name}] Failed to notify shift change:`, notifyError.message);
                     }
                 }
             }
