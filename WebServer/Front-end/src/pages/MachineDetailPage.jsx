@@ -10,13 +10,17 @@ import MachineHeader from '../components/machine/MachineHeader';
 import MachineBasicInfo from '../components/machine/MachineBasicInfo';
 import WorkShiftDataDisplay from '../components/workshift/WorkShiftDataDisplay';
 import WorkShiftPanel from '../components/workshift/WorkShiftPanel';
+import io from 'socket.io-client';
 
 const MachineDetailPage = ({ user }) => {
     const { ip } = useParams();
     const navigate = useNavigate();
-    
-    // Multi-select state
+    const [socket, setSocket] = useState(null);
     const [selectedShifts, setSelectedShifts] = useState([]);
+    const [machineRealtime, setMachineRealtime] = useState(null);
+    const { exportMultipleShifts, isExporting } = useCSVExport();
+
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
     
     const {
         machine,
@@ -37,7 +41,55 @@ const MachineDetailPage = ({ user }) => {
         handleClearSelectedShift
     } = useWorkShifts(machine?.machineId);
 
-    const { exportMultipleShifts, isExporting } = useCSVExport();
+    useEffect(() => {
+        if (machine) {
+            setMachineRealtime(machine);
+        }
+    }, [machine]);
+
+    useEffect(() => {
+        if (!machine || !user) return;
+
+        // Initialize socket connection
+        const newSocket = io(API_URL, {
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            transports: ["websocket", "polling"],
+        });
+        setSocket(newSocket);
+        // Update machine status in real-time
+        newSocket.on("machineStatusUpdate", (update) => {
+            if (update.ip === machine.ip || update.machineId === machine.machineId) {
+                console.log(`[${machine.name}] Machine status updated:`, update);
+                setMachineRealtime(prevMachine => ({
+                    ...prevMachine,
+                    ...update,
+                    lastUpdate: update.lastUpdate,
+                    lastHeartbeat: update.lastHeartbeat
+                }));
+            }
+        });
+        // Update work shifts real-time
+        newSocket.on("shiftStatusChanged", (data) => {
+            if (data.machineId === machine.machineId) {
+                console.log(`[${machine.name}] Shift status changed:`, data);
+                handleRefreshShifts();
+                
+            }
+        });
+
+        // Cleanup function
+        return () => {
+            if (newSocket) {
+                newSocket.off("machineStatusUpdate");
+                newSocket.off("shiftStatusChanged");
+                newSocket.disconnect();
+            }
+        };
+    }, [machine, user, handleRefreshShifts, API_URL]);
+    
+    
 
     // Multi-select handlers
     const handleShiftSelect = (shift, checked) => {
@@ -65,7 +117,7 @@ const MachineDetailPage = ({ user }) => {
         setSelectedShifts([]);
     };
 
-    // Debug effect
+
     useEffect(() => {
         console.log('🔍 Selected shifts updated:', selectedShifts.length);
     }, [selectedShifts]);
@@ -98,7 +150,7 @@ const MachineDetailPage = ({ user }) => {
 
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <MachineHeader machine={machine} />
+            <MachineHeader machine={machineRealtime || machine} />
             
             <Grid container spacing={3}>
                 {/* Left Column */}
@@ -140,7 +192,7 @@ const MachineDetailPage = ({ user }) => {
             {/* Last Update Info */}
             <Box sx={{ mt: 3, textAlign: 'center' }}>
                 <Typography variant="caption" color="text.secondary">
-                    Cập nhật lần cuối: {machine.lastUpdate ? new Date(machine.lastUpdate).toLocaleString('vi-VN') : 'Chưa có dữ liệu'}
+                    Cập nhật lần cuối: {(machineRealtime || machine)?.lastUpdate ? new Date(machine.lastUpdate).toLocaleString('vi-VN') : 'Chưa có dữ liệu'}
                 </Typography>
             </Box>
         </Container>

@@ -29,8 +29,7 @@ export const SnackbarProvider = ({ children }) => {
                 autoHideDuration={3000}
                 onClose={handleClose}
                 anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                TransitionComponent={Slide} // Thêm hiệu ứng slide
-                transitionDuration={500} // Thời gian hiệu ứng
+                transitionDuration={500} 
             >
                 <Alert
                     onClose={handleClose}

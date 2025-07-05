@@ -120,12 +120,6 @@ const workShiftSchema = new mongoose.Schema({
         admin: { type: Map, of: Number }
     },
     
-    // Shift ID from registers (for validation)
-    shiftIdRaw: {
-        type: Number,
-        default: 0
-    },
-    
     // ========================================
     // CALCULATED METRICS
     // ========================================

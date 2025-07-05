@@ -81,22 +81,4 @@ export class DataUtils {
             fineSaltThreshold: adminData['40036'] || 0
         };
     }
-
-    // Transform machine data for API response
-    static transformMachineResponse(machine) {
-        return {
-            id: machine._id,
-            machineId: machine.machineId,
-            name: machine.name,
-            type: machine.type,
-            location: machine.location,
-            ip: machine.ip,
-            port: machine.port,
-            status: machine.status,
-            isConnected: machine.isConnected,
-            lastUpdate: machine.lastUpdate,
-            uptime: machine.uptime,
-            parameters: machine.parameters
-        };
-    }
 }

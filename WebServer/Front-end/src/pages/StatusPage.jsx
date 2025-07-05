@@ -1,21 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Typography } from '@mui/material';
+import { 
+    Box, 
+    Container, 
+    useMediaQuery 
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client'; 
+
+// Import components
 import StatusHeader from '../components/status/StatusHeader';
 import StatusStatsCards from '../components/status/StatusStatsCards';
 import StatusMachinesGrid from '../components/status/StatusMachinesGrid';
+
+// Import API and hooks
 import { getMachines } from '../api/machineAPI';
 import { useSnackbar } from '../context/SnackbarContext';
 
 const StatusPage = ({ user }) => {
+    const theme = useTheme();
     const navigate = useNavigate();
     const { showSnackbar } = useSnackbar();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    
+    // State management
     const [machines, setMachines] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [socket, setSocket] = useState(null);
 
+    // Socket và API URL
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+    // Helper function - Sort machines by ID
+    const sortMachinesByMachineId = (machines) => {
+        return machines.sort((a, b) => {
+            const getNumFromMachineId = (machineId) => {
+                const match = machineId.match(/\d+/);
+                return match ? parseInt(match[0]) : 0;
+            };
+            return getNumFromMachineId(a.machineId) - getNumFromMachineId(b.machineId);
+        });
+    };
+
+    // Effect - Setup socket and fetch initial data
     useEffect(() => {
         if (!user) {
             setMachines([]);
@@ -24,38 +52,16 @@ const StatusPage = ({ user }) => {
             return;
         }
 
-        const getSocketUrl = () => {
-            if (import.meta.env.VITE_API_URL) {
-                return import.meta.env.VITE_API_URL;
-            }
-            return `${window.location.protocol}//${window.location.hostname}:5000`;
-        };
-
-        const newSocket = io(getSocketUrl(), {
-            withCredentials: true,
-            transports: ["websocket", "polling"]
-        });
-    
-        
-        console.log('🔌 Connecting to mainServer for real-time updates...');
-        
-        newSocket.on("connect", () => {
-            console.log("✅ Connected to mainServer for real-time updates");
-        });
-        
-        newSocket.on("disconnect", () => {
-            console.log("❌ Disconnected from mainServer");
-        });
-        
-        newSocket.on("shiftStatusChanged", (shiftUpdate) => {
-            console.log('📡 Shift status changed:', shiftUpdate);
-            showSnackbar(
-                `Ca ${shiftUpdate.shiftId}: ${shiftUpdate.status}`, 
-                shiftUpdate.status === 'complete' ? 'success' : 'warning'
-            );
+        // Initialize socket connection
+        const newSocket = io(API_URL, {
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            transports: ["websocket", "polling"],
         });
         setSocket(newSocket);
 
+        // Fetch initial machines data
         const fetchMachines = async () => {
             try {
                 setLoading(true);
@@ -65,15 +71,7 @@ const StatusPage = ({ user }) => {
                 if (result.success && result.data && result.data.length > 0) {
                     console.log("Machines loaded from API:", result.data.length);
                     
-                    const sortedMachines = result.data.sort((a, b) => {
-                        const getNumFromMachineId = (machineId) => {
-                            const match = machineId.match(/\d+/);
-                            return match ? parseInt(match[0]) : 0;
-                        };
-                        
-                        return getNumFromMachineId(a.machineId) - getNumFromMachineId(b.machineId);
-                    });
-                    
+                    const sortedMachines = sortMachinesByMachineId(result.data);
                     setMachines(sortedMachines);
                     setError(null);
                 } else {
@@ -95,6 +93,7 @@ const StatusPage = ({ user }) => {
 
         fetchMachines();
 
+        // Socket event listeners
         newSocket.on("machineStatusUpdate", (update) => {
             console.log('📡 Machine status update from mainServer:', update);
             
@@ -112,37 +111,16 @@ const StatusPage = ({ user }) => {
             );
         });
 
-        newSocket.on("newMachineAdded", (newMachine) => {
-            console.log('📡 New machine added:', newMachine);
-            setMachines((prevMachines) => {
-                const updatedMachines = [...prevMachines, newMachine];
-                return updatedMachines.sort((a, b) => {
-                    const getNumFromMachineId = (machineId) => {
-                        const match = machineId.match(/\d+/);
-                        return match ? parseInt(match[0]) : 0;
-                    };
-                    return getNumFromMachineId(a.machineId) - getNumFromMachineId(b.machineId);
-                });
-            });
-            showSnackbar(`Máy mới được thêm: ${newMachine.name}`, 'info');
-        });
-
-        newSocket.on("machineDeleted", (deletedMachine) => {
-            console.log('📡 Machine deleted:', deletedMachine);
-            setMachines((prevMachines) => 
-                prevMachines.filter(m => m._id !== deletedMachine._id)
-            );
-            showSnackbar(`Máy đã bị xóa: ${deletedMachine.machineId || deletedMachine.name}`, 'warning');
-        });
-
+        // Cleanup function
         return () => {
             if (newSocket) {
                 console.log("🔌 Disconnecting from mainServer...");
                 newSocket.disconnect();
             }
         };
-    }, [user, showSnackbar]);
+    }, [user, showSnackbar, API_URL]);
 
+    // Event handlers
     const handleMachineClick = (machine) => {
         console.log("Điều hướng đến chi tiết máy:", machine.name);
         navigate(`/machine/${machine.ip}`);
@@ -152,14 +130,7 @@ const StatusPage = ({ user }) => {
         try {
             const result = await getMachines();
             if (result.success && result.data) {
-                const sortedMachines = result.data.sort((a, b) => {
-                    const getNumFromMachineId = (machineId) => {
-                        const match = machineId.match(/\d+/);
-                        return match ? parseInt(match[0]) : 0;
-                    };
-                    return getNumFromMachineId(a.machineId) - getNumFromMachineId(b.machineId);
-                });``
-                
+                const sortedMachines = sortMachinesByMachineId(result.data);
                 setMachines(sortedMachines);
                 console.log("✅ Machine list refreshed and sorted after deletion");
             }
@@ -169,21 +140,40 @@ const StatusPage = ({ user }) => {
     };
 
     return (
-        <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-            <StatusHeader error={error} user={user} />
-            <StatusStatsCards 
-                machines={machines} 
-                loading={loading} 
-                user={user} 
-            />
-            <StatusMachinesGrid 
-                machines={machines} 
-                loading={loading} 
-                user={user} 
-                onMachineClick={handleMachineClick}
-                onMachineDelete={handleMachineDelete} 
-            />
-        </Container>
+        <Box
+            sx={{
+                minHeight: '100vh',
+                background: theme.palette.mode === 'dark'
+                    ? `linear-gradient(135deg, ${theme.palette.primary.dark}15 0%, ${theme.palette.secondary.dark}10 100%)`
+                    : `linear-gradient(135deg, ${theme.palette.primary.main}15 0%, ${theme.palette.secondary.main}10 100%)`,
+                py: 4
+            }}
+        >
+            <Container maxWidth="xl">
+                {/* Header Section */}
+                <StatusHeader 
+                    isMobile={isMobile}
+                    error={error} 
+                    user={user} 
+                />
+                
+                {/* Stats Cards Section */}
+                <StatusStatsCards 
+                    machines={machines} 
+                    loading={loading} 
+                    user={user} 
+                />
+                
+                {/* Machines Grid Section */}
+                <StatusMachinesGrid 
+                    machines={machines} 
+                    loading={loading} 
+                    user={user} 
+                    onMachineClick={handleMachineClick}
+                    onMachineDelete={handleMachineDelete} 
+                />
+            </Container>
+        </Box>
     );
 };
 

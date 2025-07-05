@@ -308,17 +308,18 @@ class ModbusService {
                     await shift.save();
                     console.log(`[${machine.name}] Updated shift ${shift.shiftId} status to: ${newStatus}`);
                     
-                    const notificationService = (await import('./notificationService.js')).default;
-                    await notificationService.notifyMainServerShiftStatusChanged(shift);
+                    try {
+                        await notificationService.notifyMainServerShiftChanged(shift);
+                    } catch (notifyError) {
+                        console.error(`[${machine.name}] Failed to notify shift change:`, notifyError.message);
+                    }
                 }
                 
                 console.log(`[${machine.name}] Completed updating ${activeOrPausedShifts.length} active/paused shifts`);
             } else {
                 console.log(`[${machine.name}] No active or paused shifts found to update`);
             }
-            
-            console.log(`[${machine.name}] === END CONNECTION LOSS HANDLING ===`);
-            
+                        
         } catch (error) {
             console.error(`[${machine.name}] Error handling connection loss:`, error.message);
         }

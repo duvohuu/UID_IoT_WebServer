@@ -137,6 +137,15 @@ export const useWorkShifts = (machineId) => {
         }
     }, [workShifts, userHasSelectedShift, userHasClearedSelection, autoSelectDefaultShift]); 
 
+    useEffect(() => {
+        if (selectedShiftData && workShifts.length > 0) {
+            const updatedShift = workShifts.find(shift => shift._id === selectedShiftData._id);
+            if (updatedShift && JSON.stringify(updatedShift) !== JSON.stringify(selectedShiftData)) {
+                console.log('🔄 Auto-updating selectedShiftData from workShifts');
+                setSelectedShiftData(updatedShift);
+            }
+        }
+    }, [workShifts, selectedShiftData]);
     return {
         workShifts,
         selectedShiftData,
