@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, Typography, Box, Chip, Checkbox } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
-const WorkShiftCard = ({ 
+const SaltMachineCard = ({ 
     shift, 
     onClick, 
     isSelected = false,
@@ -179,4 +179,4 @@ const WorkShiftCard = ({
     );
 };
 
-export default WorkShiftCard;
+export default SaltMachineCard;

@@ -1,4 +1,4 @@
-import WorkShift from "../models/Workshift.js";
+import SaltMachine from "../models/SaltMachine.js";
 import mongoose from "mongoose";
 
 export const getWorkShifts = async (req, res) => {
@@ -24,7 +24,7 @@ export const getWorkShifts = async (req, res) => {
             sortQuery = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
         }
         
-        const shifts = await WorkShift.find(query)
+        const shifts = await SaltMachine.find(query)
             .populate({
                 path: 'machineId',
                 select: 'name type location ip machineId',
@@ -37,7 +37,7 @@ export const getWorkShifts = async (req, res) => {
         
         console.log(`Found ${shifts.length} shifts`);
         
-        const total = await WorkShift.countDocuments(query);
+        const total = await SaltMachine.countDocuments(query);
         
         const response = {
             shifts,
@@ -56,7 +56,7 @@ export const getWorkShifts = async (req, res) => {
 
 export const getWorkShiftById = async (req, res) => {
     try {
-        const shift = await WorkShift.findOne({ shiftId: req.params.shiftId })
+        const shift = await SaltMachine.findOne({ shiftId: req.params.shiftId })
             .populate('machineId', 'name type location ip machineId')
             .lean();
         
@@ -87,7 +87,7 @@ export const getWorkShiftStats = async (req, res) => {
         }
         
         // Count by status 
-        const statusCounts = await WorkShift.aggregate([
+        const statusCounts = await SaltMachine.aggregate([
             { $match: matchQuery },
             {
                 $group: {
@@ -98,7 +98,7 @@ export const getWorkShiftStats = async (req, res) => {
         ]);
         
         // General stats  
-        const generalStats = await WorkShift.aggregate([
+        const generalStats = await SaltMachine.aggregate([
             { $match: matchQuery },
             {
                 $group: {
@@ -139,7 +139,7 @@ export const getWorkShiftStats = async (req, res) => {
 
 export const getActiveWorkShifts = async (req, res) => {
     try {
-        const activeShifts = await WorkShift.find({ status: 'active' })
+        const activeShifts = await SaltMachine.find({ status: 'active' })
             .populate('machineId', 'name type location ip machineId')
             .sort({ startTime: -1 })
             .lean();

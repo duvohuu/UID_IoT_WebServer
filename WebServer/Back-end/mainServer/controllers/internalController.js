@@ -10,7 +10,7 @@ export const handleShiftCompleted = (req, res) => {
     const shiftData = req.body;
     const io = req.app.get('io');
     
-    io.emit("workShiftCompleted", shiftData);
+    io.emit("SaltMachineCompleted", shiftData);
     res.json({ success: true, message: "Shift completion broadcasted" });
 };
 
@@ -19,7 +19,7 @@ export const handleShiftStarted = (req, res) => {
     const io = req.app.get('io');
     
     // Broadcast to Frontend via Socket.IO
-    io.emit("workShiftUpdate", {
+    io.emit("SaltMachineUpdate", {
         type: 'shift_started',
         shift: shiftData,
         timestamp: new Date()

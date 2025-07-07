@@ -82,7 +82,7 @@ const UserHeaderSection = styled(Box)(({ theme }) => ({
 }));
 
 // Enhanced Avatar with edit overlay
-const AvatarContainer = styled(Box)(({ theme }) => ({
+const AvatarContainer = styled(Box)(() => ({
     position: "relative",
     display: "inline-block",
     "&:hover .avatar-overlay": {

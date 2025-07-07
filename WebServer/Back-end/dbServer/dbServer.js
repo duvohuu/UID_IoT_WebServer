@@ -13,7 +13,7 @@ import { corsMiddleware, loggingMiddleware, ipWhitelistMiddleware } from "./midd
 // Import routes
 import internalUserRoutes from "./routes/internalUserRoutes.js";
 import internalMachineRoutes from "./routes/internalMachineRoutes.js";
-import internalWorkShiftRoutes from "./routes/internalWorkShiftRoutes.js";
+import internalSaltMachineRoutes from "./routes/internalSaltMachineRoutes.js";
 
 // Import services
 import { modbusService } from "./services/modbusService.js";
@@ -43,7 +43,7 @@ app.use('/db/internal/*', ipWhitelistMiddleware);
 // =================================================================
 app.use('/db/internal/users', internalUserRoutes);
 app.use('/db/internal/machines', internalMachineRoutes);
-app.use('/db/internal/work-shifts', internalWorkShiftRoutes);
+app.use('/db/internal/work-shifts', internalSaltMachineRoutes);
 
 // Health check
 app.get('/', (req, res) => {

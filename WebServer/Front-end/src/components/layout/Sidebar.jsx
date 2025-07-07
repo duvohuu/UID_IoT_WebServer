@@ -15,7 +15,7 @@ import StatusIcon from '@mui/icons-material/MonitorHeart';
 import SettingIcon from '@mui/icons-material/Settings';
 import { Link, useLocation } from 'react-router-dom';
 
-const expandedWidth = 240;
+const expandedWidth = 200;
 const collapsedWidth = 80;
 
 const menuItems = [
@@ -46,12 +46,12 @@ const Sidebar = ({ open }) => {
                 to={item.path}
                 selected={selected}
                 sx={(theme) => ({
-                    minHeight: 56,
-                    px: 2.5,
-                    py: 1.5,
+                    minHeight: 60,
+                    px: 1,
+                    py: 1,
                     mx: 1,
                     mb: 0.5,
-                    borderRadius: 2,
+                    borderRadius: 3,
                     justifyContent: open ? 'initial' : 'center',
                     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                     textDecoration: 'none',
@@ -67,7 +67,7 @@ const Sidebar = ({ open }) => {
                             color: theme.palette.primary.main,
                         },
                         '& .MuiListItemText-primary': {
-                            fontWeight: 600,
+                            fontWeight: 700,
                         }
                     },
                     '&.Mui-selected': {
@@ -81,17 +81,17 @@ const Sidebar = ({ open }) => {
                             left: 0,
                             top: '50%',
                             transform: 'translateY(-50%)',
-                            width: 4,
-                            height: '60%',
+                            width: 5,
+                            height: '70%',
                             backgroundColor: theme.palette.primary.main,
                             borderRadius: '0 4px 4px 0',
                         },
                         '& .MuiListItemIcon-root': {
                             color: theme.palette.primary.main,
-                            transform: 'scale(1.05)',
+                            transform: 'scale(1.1)',
                         },
                         '& .MuiListItemText-primary': {
-                            fontWeight: 600,
+                            fontWeight: 700,
                             color: theme.palette.primary.main,
                         },
                         '&:hover': {
@@ -104,8 +104,8 @@ const Sidebar = ({ open }) => {
             >
                 <ListItemIcon
                     sx={()=> ({
-                        minWidth: 40,
-                        mr: open ? 2.5 : 'auto',
+                        minWidth: 50,
+                        mr: open ? 2 : 'auto',
                         justifyContent: 'center',
                         color: 'inherit',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -118,8 +118,8 @@ const Sidebar = ({ open }) => {
                         primary={item.label}
                         sx={{
                             '& .MuiListItemText-primary': {
-                                fontSize: '13pt',
-                                fontWeight: 500,
+                                fontSize: '14pt',
+                                fontWeight: 700,
                                 transition: 'all 0.2s ease',
                             }
                         }}
@@ -206,31 +206,7 @@ const Sidebar = ({ open }) => {
                                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
                             }}
                         >
-                            <Typography 
-                                variant="h6" 
-                                sx={{ 
-                                    color: 'white', 
-                                    fontWeight: 700,
-                                    fontSize: '1.1rem'
-                                }}
-                            >
-                                A
-                            </Typography>
                         </Box>
-                        <Typography 
-                            variant="h6" 
-                            sx={{ 
-                                fontWeight: 700,
-                                background: (theme) => theme.palette.mode === 'dark'
-                                    ? 'linear-gradient(135deg, #ffffff, #cccccc)'
-                                    : 'linear-gradient(135deg, #333333, #666666)',
-                                backgroundClip: 'text',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                            }}
-                        >
-                            Admin
-                        </Typography>
                     </Box>
                 )}
             </Toolbar>

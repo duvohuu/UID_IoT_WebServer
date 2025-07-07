@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getWorkShiftsByMachine } from '../api/workShiftAPI';
+import { getWorkShiftsByMachine } from '../api/saltMachineAPI';
 
 export const useWorkShifts = (machineId) => {
     const [workShifts, setWorkShifts] = useState([]);

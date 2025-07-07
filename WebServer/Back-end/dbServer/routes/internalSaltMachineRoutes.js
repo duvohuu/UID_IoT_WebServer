@@ -4,14 +4,9 @@ import {
     getWorkShiftById, 
     getWorkShiftStats, 
     getActiveWorkShifts 
-} from "../controllers/internalWorkShiftController.js";
+} from "../controllers/internalSaltMachineController.js";
 
 const router = express.Router();
-
-// router.use((req, res, next) => {
-//     console.log(`🔗 Internal WorkShift Route: ${req.method} ${req.path}`);
-//     next();
-// });
 
 router.get('/', getWorkShifts);
 router.get('/stats', getWorkShiftStats); 

@@ -18,9 +18,6 @@ const MachineBasicInfo = ({ machine }) => {
                     <Typography>
                         <strong>Vị trí:</strong> {machine.location}
                     </Typography>
-                    <Typography>
-                        <strong>Trạng thái:</strong> {machine.status}
-                    </Typography>
                 </Box>
             </CardContent>
         </Card>

@@ -6,7 +6,7 @@ import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import StatusPage from './pages/StatusPage';
 import SettingPage from './pages/SettingPage';
-import MachineDetailPage from './pages/MachineDetailPage';
+import SaltMachinePage from './pages/SaltMachinePage';
 import { SnackbarProvider } from './context/SnackbarContext';
 import axios from 'axios'; 
 
@@ -98,7 +98,7 @@ const App = () => {
                             <Route path="/" element={<Navigate to="/status" replace />} />
                             <Route path="/status" element={<StatusPage user={user} />} />
                             <Route path="/setting" element={<SettingPage user={user} mode={mode} setMode={setMode} />} />
-                            <Route path="/machine/:ip" element={<MachineDetailPage user={user} />} />
+                            <Route path="/machine/:ip" element={<SaltMachinePage user={user} />} />
                         </Routes>
                     </Box>
                 </Box>

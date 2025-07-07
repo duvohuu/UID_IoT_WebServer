@@ -1,7 +1,6 @@
-// Back-end/dbServer/models/Workshift.js
 import mongoose from 'mongoose';
 
-const workShiftSchema = new mongoose.Schema({
+const SaltMachineSchema = new mongoose.Schema({
     shiftId: {
         type: String,
         required: true,
@@ -139,22 +138,34 @@ const workShiftSchema = new mongoose.Schema({
             endTime: { type: Date, default: null },
             durationMinutes: { type: Number, default: 0 }
         }]
+    },
+
+    // ========================================
+    // BACKUP FIELDS
+    // ========================================
+    isFromBackup: {
+        type: Boolean,
+        default: false
+    },
+    backupIndex: {
+        type: Number,
+        default: null
     }
 });
 
 // ========================================
 // INDEXES - Performance optimization
 // ========================================
-workShiftSchema.index({ shiftId: 1 }, { unique: true });
-workShiftSchema.index({ machineId: 1, startTime: -1 });
-workShiftSchema.index({ status: 1 });
-workShiftSchema.index({ userId: 1 });
-workShiftSchema.index({ efficiency: -1 });
-workShiftSchema.index({ machineNumber: 1, shiftNumber: -1 });
-workShiftSchema.index({ startTime: -1 });
-workShiftSchema.index({ duration: -1 });
-workShiftSchema.index({ totalWeightFilled: -1 });
-workShiftSchema.index({ completionPercentage: -1 });
+SaltMachineSchema.index({ shiftId: 1 }, { unique: true });
+SaltMachineSchema.index({ machineId: 1, startTime: -1 });
+SaltMachineSchema.index({ status: 1 });
+SaltMachineSchema.index({ userId: 1 });
+SaltMachineSchema.index({ efficiency: -1 });
+SaltMachineSchema.index({ machineNumber: 1, shiftNumber: -1 });
+SaltMachineSchema.index({ startTime: -1 });
+SaltMachineSchema.index({ duration: -1 });
+SaltMachineSchema.index({ totalWeightFilled: -1 });
+SaltMachineSchema.index({ completionPercentage: -1 });
 
-const WorkShift = mongoose.model('WorkShift', workShiftSchema);
-export default WorkShift;
+const SaltMachine = mongoose.model('SaltMachine', SaltMachineSchema);
+export default SaltMachine;

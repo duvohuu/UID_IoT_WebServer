@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Machine from '../models/Machine.js';
-import WorkShift from '../models/Workshift.js'; // ✅ THÊM DÒNG NÀY
+import SaltMachine from '../models/SaltMachine.js'; 
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -38,7 +38,7 @@ const deleteAndReindex = async () => {
             console.log(`   ${index + 1}. ${machine.machineId} - ${machine.name} (${machine.userId})${marker}`);
         });
         
-        // ======= BƯỚC 2: XÓA CÁC MÁY VÀ WORKSHIFT =======
+        // ======= BƯỚC 2: XÓA CÁC MÁY VÀ SaltMachine =======
         console.log(`\n🗑️  Deleting ${CONFIG.machineIdsToDelete.length} machines and their work shifts...`);
         
         const deletedMachines = [];
@@ -47,17 +47,17 @@ const deleteAndReindex = async () => {
         for (const machineId of CONFIG.machineIdsToDelete) {
             console.log(`\n🔄 Processing machine: ${machineId}`);
             
-            // ✅ BƯỚC 1: XÓA VĨNH VIỄN TẤT CẢ WORKSHIFT
+            // ✅ BƯỚC 1: XÓA VĨNH VIỄN TẤT CẢ SaltMachine
             console.log(`   🗑️ Permanently deleting ALL work shifts for ${machineId}...`);
-            const deletedShifts = await WorkShift.deleteMany({ machineId: machineId });
+            const deletedShifts = await SaltMachine.deleteMany({ machineId: machineId });
             totalDeletedShifts += deletedShifts.deletedCount;
             console.log(`   ✅ PERMANENTLY DELETED ${deletedShifts.deletedCount} work shifts`);
             
             // ✅ BƯỚC 2: VERIFY - KIỂM TRA LẠI
-            const remainingShifts = await WorkShift.find({ machineId: machineId });
+            const remainingShifts = await SaltMachine.find({ machineId: machineId });
             if (remainingShifts.length > 0) {
                 console.log(`   ⚠️  WARNING: Still found ${remainingShifts.length} shifts. Force deleting...`);
-                await WorkShift.deleteMany({ machineId: machineId });
+                await SaltMachine.deleteMany({ machineId: machineId });
                 console.log(`   🔧 Force deleted remaining shifts`);
             }
             
@@ -75,7 +75,7 @@ const deleteAndReindex = async () => {
             }
             
             // ✅ FINAL VERIFICATION
-            const finalCheck = await WorkShift.find({ machineId: machineId });
+            const finalCheck = await SaltMachine.find({ machineId: machineId });
             console.log(`   🔍 Final verification: ${finalCheck.length} remaining shifts (should be 0)`);
         }
         
