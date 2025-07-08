@@ -16,7 +16,7 @@ import {
 } from '@mui/icons-material';
 import { MONITORING_DATA_CONFIG, ADMIN_DATA_CONFIG } from '../../config/machineDataConfig';
 
-const WorkShiftDataDisplay = ({ 
+const SaltMachineDataDisplay = ({ 
     selectedShiftData, 
     user, 
     workShifts, 
@@ -89,17 +89,16 @@ const WorkShiftDataDisplay = ({
                             color: isCalibrated ? 'success.main' : 'warning.main'
                         }}
                     >
-                        {/* {isCalibrated ? '✅ Đã hiệu chuẩn' : '⚠️ Chưa hiệu chuẩn'} */}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                         Gain: <Typography component="span" variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                            {Number(value.gain || 0).toExponential(2)}
+                            {Number(value.gain || 0).toFixed(4)}
                         </Typography>
                     </Typography>
 
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                         Offset: <Typography component="span" variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                            {Number(value.offset || 0).toExponential(2)}
+                            {Number(value.offset || 0).toFixed(4)}
                         </Typography>
                     </Typography>
                 </Box>
@@ -379,4 +378,4 @@ const WorkShiftDataDisplay = ({
     );
 };
 
-export default WorkShiftDataDisplay;
+export default SaltMachineDataDisplay;

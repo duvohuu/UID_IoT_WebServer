@@ -3,16 +3,16 @@ import { useParams } from 'react-router-dom';
 import { Container, Grid, CircularProgress, Alert, Button, Typography, Box } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useMachineDetail } from '../hooks/useMachineDetail';
+import { useSaltMachine } from '../hooks/useSaltMachine';
 import { useWorkShifts } from '../hooks/useWorkShifts';
 import { useCSVExport } from '../hooks/useCSVExport';
 import MachineHeader from '../components/machine/MachineHeader';
 import MachineBasicInfo from '../components/machine/MachineBasicInfo';
-import WorkShiftDataDisplay from '../components/workshift/WorkShiftDataDisplay';
-import WorkShiftPanel from '../components/workshift/WorkShiftPanel';
+import SaltMachineDataDisplay from '../components/saltMachine/SaltMachineDataDisplay';
+import SaltMachinePanel from '../components/saltMachine/SaltMachinePanel';
 import io from 'socket.io-client';
 
-const MachineDetailPage = ({ user }) => {
+const SaltMachinePage = ({ user }) => {
     const { ip } = useParams();
     const navigate = useNavigate();
     const [socket, setSocket] = useState(null);
@@ -26,7 +26,7 @@ const MachineDetailPage = ({ user }) => {
         machine,
         loading: machineLoading,
         error: machineError
-    } = useMachineDetail(ip);
+    } = useSaltMachine(ip);
 
     const {
         workShifts,
@@ -156,7 +156,7 @@ const MachineDetailPage = ({ user }) => {
                 {/* Left Column */}
                 <Grid size={{ xs: 12, md: 4 }}>
                     <MachineBasicInfo machine={machine} />
-                    <WorkShiftPanel
+                    <SaltMachinePanel
                         machine={machine}
                         workShifts={workShifts}
                         selectedShiftData={selectedShiftData}
@@ -178,7 +178,7 @@ const MachineDetailPage = ({ user }) => {
                 
                 {/* Right Column */}
                 <Grid size={{ xs: 12, md: 8 }}>
-                    <WorkShiftDataDisplay
+                    <SaltMachineDataDisplay
                         machine={machine}
                         selectedShiftData={selectedShiftData}
                         user={user}
@@ -199,4 +199,4 @@ const MachineDetailPage = ({ user }) => {
     );
 };
 
-export default MachineDetailPage;
+export default SaltMachinePage;

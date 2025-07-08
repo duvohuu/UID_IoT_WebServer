@@ -65,14 +65,6 @@ const StatusHeader = ({ isMobile, error, user }) => {
                                 variant="filled"
                                 sx={{ fontWeight: 600 }}
                             />
-                            {isAdmin && (
-                                <Chip
-                                    label="Toàn quyền hệ thống"
-                                    color="error"
-                                    variant="outlined"
-                                    size="small"
-                                />
-                            )}
                         </Box>
                     )}
                     
@@ -80,9 +72,9 @@ const StatusHeader = ({ isMobile, error, user }) => {
                         variant="body1" 
                         sx={{ 
                             color: theme.palette.text.secondary,
-                            maxWidth: 600,
                             mx: 'auto',
-                            lineHeight: 1.6
+                            lineHeight: 1.6,
+                            fontWeight: 500,
                         }}
                     >
                         {isAdmin 

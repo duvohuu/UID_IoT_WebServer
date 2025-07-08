@@ -1,9 +1,9 @@
 import net from "net";
 import Machine from "../models/Machine.js";
 import { MODBUS_CONFIG, NETWORK_CONFIG } from "../config/modbus.js";
-import { workShiftService } from "./workShiftService.js";
+import { saltMachineService } from "./saltMachineService.js";
 import { notificationService } from "./notificationService.js";
-import WorkShift from "../models/Workshift.js";
+import SaltMachine from "../models/SaltMachine.js";
 
 class ModbusService {
     constructor() {
@@ -60,7 +60,7 @@ class ModbusService {
                     await this.handleConnectionLoss(machine);
                 }
                 
-                this.logStatusChange(machine.name, wasOnline, isNowOnline);
+                // this.logStatusChange(machine.name, wasOnline, isNowOnline);
                 
                 if (i < allMachines.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, NETWORK_CONFIG.delayBetweenScans));
@@ -147,32 +147,39 @@ class ModbusService {
                     return;
                 }
 
-                const expectedDataLength = 9 + (70 * 2);
+                const expectedDataLength = 9 + (570 * 2);
                 if (data.length >= expectedDataLength) {
-                    const registers = [];
-                    for (let i = 0; i < 70; i++) {
-                        registers[i] = data.readUInt16BE(9 + (i * 2));
+                    const allRegisters = [];
+                    for (let i = 0; i < 570; i++) {
+                        allRegisters[i] = data.readUInt16BE(9 + (i * 2));
                     }
+
+                    const currentRegisters = allRegisters.slice(0, 70);
+                    const backupRegisters = this.extractBackupShifts(allRegisters);
                     try {
-                        console.log(`[${machine.name}] Calling workShiftService.handleTracking...`);
-                        await workShiftService.handleTracking(machine, registers);
-                        console.log(`[${machine.name}] workShiftService completed`);
+                        console.log(`[${machine.name}] Processing current shift...`);
+                        await saltMachineService.handleTracking(machine, currentRegisters);
+                        
+                        console.log(`[${machine.name}] Processing backup shifts...`);
+                        await saltMachineService.handleBackupShifts(machine, backupRegisters);
+
+                        console.log(`[${machine.name}] saltMachineService completed`);
                     } catch (shiftError) {
-                        console.error(`[${machine.name}] workShiftService error:`, shiftError.message);
+                        console.error(`[${machine.name}] saltMachineService error:`, shiftError.message);
                     }
                     const parameters = {
                         // Monitoring data (40001-40011)
                         monitoringData: Object.fromEntries(
                             Array.from({length: 11}, (_, i) => [
                                 `4000${i + 1}`, 
-                                registers[i] || 0
+                                allRegisters[i] || 0
                             ])
                         ),
                         // Admin data (40012-40070)
                         adminData: Object.fromEntries(
                             Array.from({length: 59}, (_, i) => [
                                 (40012 + i).toString(), 
-                                registers[i + 11] || 0
+                                allRegisters[i + 11] || 0
                             ])
                         )
                     };
@@ -233,27 +240,6 @@ class ModbusService {
         });
     }
 
-    createModbusRequest(machine) {
-        const buffer = Buffer.alloc(12);
-        const transactionId = this.getNextTransactionId(machine._id);
-        buffer.writeUInt16BE(transactionId, 0);
-        buffer.writeUInt16BE(0, 2);
-        buffer.writeUInt16BE(6, 4);
-        buffer.writeUInt8(1, 6);
-        buffer.writeUInt8(3, 7);
-        buffer.writeUInt16BE(0, 8);
-        buffer.writeUInt16BE(70, 10);
-        return { buffer, transactionId };
-    }
-
-    getNextTransactionId(machineId) {
-        if (!this.machineTransactionIds.has(machineId)) this.machineTransactionIds.set(machineId, 1);
-        let currentId = this.machineTransactionIds.get(machineId);
-        currentId++;
-        this.machineTransactionIds.set(machineId, currentId);
-        return currentId;
-    }
-
     async updateMachineStatus(machineId, updateData) {
         try {
             const machine = await Machine.findByIdAndUpdate(
@@ -265,7 +251,7 @@ class ModbusService {
             if (machine) {
                 if (!updateData.isConnected && machine.isConnected) {
                     console.log(`[${machine.name}] Detected connection loss - Notifying work shift service`);
-                    await workShiftService.handleConnectionLoss(machine);
+                    await saltMachineService.handleConnectionLoss(machine);
                 }
                 
                 await notificationService.notifyMainServer(machine);
@@ -277,12 +263,12 @@ class ModbusService {
 
     async handleConnectionLoss(machine) {
         try {            
-            let lastMachineStatus = workShiftService.lastMachinesStatus.get(machine.machineId);
+            let lastMachineStatus = saltMachineService.lastMachinesStatus.get(machine.machineId);
             if (lastMachineStatus === undefined) {
-                lastMachineStatus = workShiftService.lastMachinesStatus.get(machine._id.toString());
+                lastMachineStatus = saltMachineService.lastMachinesStatus.get(machine._id.toString());
             }
             
-            const activeOrPausedShifts = await WorkShift.find({ 
+            const activeOrPausedShifts = await SaltMachine.find({ 
                 machineId: machine.machineId, 
                 status: { $in: ['active', 'paused'] }
             }).sort({ createdAt: -1 });
@@ -323,6 +309,60 @@ class ModbusService {
         } catch (error) {
             console.error(`[${machine.name}] Error handling connection loss:`, error.message);
         }
+    }
+
+    createModbusRequest(machine) {
+        const buffer = Buffer.alloc(12);
+        const transactionId = this.getNextTransactionId(machine._id);
+        buffer.writeUInt16BE(transactionId, 0);
+        buffer.writeUInt16BE(0, 2);
+        buffer.writeUInt16BE(6, 4);
+        buffer.writeUInt8(1, 6);
+        buffer.writeUInt8(3, 7);
+        buffer.writeUInt16BE(0, 8);
+        buffer.writeUInt16BE(570, 10);
+        return { buffer, transactionId };
+    }
+
+    getNextTransactionId(machineId) {
+        if (!this.machineTransactionIds.has(machineId)) this.machineTransactionIds.set(machineId, 1);
+        let currentId = this.machineTransactionIds.get(machineId);
+        currentId++;
+        this.machineTransactionIds.set(machineId, currentId);
+        return currentId;
+    }
+
+    extractBackupShifts(allRegisters) {
+        const backupShifts = [];
+        
+        console.log(`Total registers available: ${allRegisters.length}`);
+        
+        for (let shiftIndex = 0; shiftIndex < 5; shiftIndex++) {
+            const startIdx = 100 + (shiftIndex * 100); 
+            
+            if (startIdx + 70 > allRegisters.length) {
+                console.log(`Backup shift ${shiftIndex + 1}: Not enough data (need ${startIdx + 70}, have ${allRegisters.length})`);
+                continue;
+            }
+            
+            const shiftRegisters = allRegisters.slice(startIdx, startIdx + 70);
+            
+            const shiftIdLow = shiftRegisters[8] || 0; 
+            const shiftIdHigh = shiftRegisters[9] || 0;  
+                        
+            if (shiftIdLow !== 0 || shiftIdHigh !== 0) {
+                backupShifts.push({
+                    index: shiftIndex + 1,
+                    registers: shiftRegisters
+                });
+                console.log(`Found valid backup shift ${shiftIndex + 1}: ${shiftIdLow}-${shiftIdHigh}`);
+            } else {
+                console.log(`Backup shift ${shiftIndex + 1}: No valid shift ID (both Low and High are 0)`);
+            }
+        }
+        
+        console.log(`Total backup shifts found: ${backupShifts.length}`);
+        return backupShifts;
     }
     
     logStatusChange(machineName, wasOnline, isNowOnline) {

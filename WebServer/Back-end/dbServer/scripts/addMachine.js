@@ -48,12 +48,12 @@ const CONFIG = {
     
     // Thông tin máy mới
     machine: {
-        machineId: 'MACHINE_001',           
-        name: 'Máy Chiết Muối',      
-        ip: '192.168.1.200',    
+        machineId: 'MACHINE_004',           
+        name: 'Máy Test 2 Máy test 3',      
+        ip: '192.168.1.204',    
         port: 502,            
         location: 'UID Lab',      
-        type: 'Salt Filling Machine'
+        type: 'Test Machine'
     }
 };
 

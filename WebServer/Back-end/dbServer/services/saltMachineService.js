@@ -1,10 +1,10 @@
-import WorkShift from "../models/Workshift.js";
+import SaltMachine from "../models/SaltMachine.js";
 import { notificationService } from "./notificationService.js";
 import { RegisterUtils } from '../utils/registerUtils.js';
 import { CalculationUtils } from '../utils/calculationUtils.js';
 import { DataUtils } from '../utils/dataUtils.js';
 
-class WorkShiftService {
+class SaltMachineService {
     constructor() {
         this.lastShiftsId = new Map();
         this.lastMachinesStatus = new Map();
@@ -67,7 +67,7 @@ class WorkShiftService {
         await this.checkForShiftChange(machine, shiftId);
 
         try {
-            const existingShift = await WorkShift.findOne({ shiftId: shiftId });
+            const existingShift = await SaltMachine.findOne({ shiftId: shiftId });
             
             if (existingShift) {
                 console.log(`[${machine.name}] SHIFT EXISTS - Updating: ${shiftId}`);
@@ -99,7 +99,7 @@ class WorkShiftService {
             } else {
                 initialStatus = 'paused';
             }
-            const newShift = new WorkShift({
+            const newShift = new SaltMachine({
                 shiftId,
                 machineId: machine.machineId,
                 machineName: machine.name,
@@ -253,7 +253,7 @@ class WorkShiftService {
         try {            
             const lastShiftId = this.lastShiftsId.get(machine.machineId);            
             if (lastShiftId && lastShiftId !== currentShiftId) {                
-                const previousShift = await WorkShift.findOne({ shiftId: lastShiftId, status: 'active' });
+                const previousShift = await SaltMachine.findOne({ shiftId: lastShiftId, status: 'active' });
                 
                 if (previousShift) {
                     const previousShiftStatus = previousShift.machineStatus;
@@ -286,6 +286,124 @@ class WorkShiftService {
             }
         }
     }
+
+    async handleBackupShifts(machine, backupData) {
+        if (!backupData || backupData.length === 0) {
+            console.log(`[${machine.name}] No backup shifts to process`);
+            return;
+        }
+
+        console.log(`[${machine.name}] Processing ${backupData.length} backup shifts...`);
+
+        for (const backupShift of backupData) {
+            try {
+                const currentParameters = {
+                    monitoringData: {
+                        '40001': backupShift.registers[0] || 0,
+                        '40002': backupShift.registers[1] || 0,
+                        '40003': backupShift.registers[2] || 0,
+                        '40004': backupShift.registers[3] || 0,
+                        '40005': backupShift.registers[4] || 0,
+                        '40006': backupShift.registers[5] || 0,
+                        '40007': backupShift.registers[6] || 0,
+                        '40008': backupShift.registers[7] || 0,
+                        '40009': backupShift.registers[8] || 0,
+                        '40010': backupShift.registers[9] || 0,
+                        '40011': backupShift.registers[10] || 0
+                    },
+                    adminData: Object.fromEntries(
+                        Array.from({length: 59}, (_, i) => [
+                            (40012 + i).toString(), 
+                            backupShift.registers[i + 11] || 0
+                        ])
+                    )
+                };
+
+                const shiftInfo = RegisterUtils.getShiftIdFromParameters(machine, currentParameters);
+                const { shiftId, shiftNumber } = shiftInfo;
+
+                if (shiftNumber === 0) {
+                    continue; 
+                }
+
+                console.log(`[${machine.name}] Processing backup shift ${backupShift.index}: ${shiftId}`);
+
+                const existingShift = await SaltMachine.findOne({ shiftId: shiftId });
+                
+                if (!existingShift) {
+                    console.log(`[${machine.name}] Creating missing shift from backup: ${shiftId}`);
+                    await this.createShiftFromBackup(machine, shiftInfo, currentParameters, backupShift.index);
+                } else {
+                    console.log(`[${machine.name}] Backup shift ${shiftId} already exists, skipping`);
+                }
+
+            } catch (error) {
+                console.error(`[${machine.name}] Error processing backup shift ${backupShift.index}:`, error.message);
+            }
+        }
+    }
+
+    async createShiftFromBackup(machine, shiftInfo, currentParameters, backupIndex) {
+        try {
+            const { shiftId, shiftNumber, machineNumber } = shiftInfo;
+            const machineStatus = currentParameters.monitoringData['40001'] || 0;
+
+            let initialStatus;
+            if (machineStatus == 0) {
+                initialStatus = 'complete';
+            } else if (machineStatus == 1) {
+                initialStatus = 'incomplete'; 
+            } else {
+                initialStatus = 'incomplete';
+            }
+
+            const newShift = new SaltMachine({
+                shiftId,
+                machineId: machine.machineId,
+                machineName: machine.name,
+                userId: machine.userId,
+                machineNumber,
+                shiftNumber,
+                status: initialStatus,
+                pauseTracking: {
+                    totalPausedMinutes: 0,
+                    currentPausedStart: null,
+                    pausedHistory: []
+                },
+                isFromBackup: true, 
+                backupIndex: backupIndex
+            });
+
+            // Transform data như bình thường
+            DataUtils.transformWorkShiftData(
+                newShift, 
+                currentParameters.monitoringData, 
+                currentParameters.adminData
+            );
+
+            if (newShift.timeTracking) {
+                newShift.timeTracking.shiftPausedTime = 0;
+            }
+            
+            CalculationUtils.calculateAllMetrics(newShift);
+            
+            await newShift.save();
+            console.log(`[${machine.name}] Created backup shift: ${shiftId} (backup ${backupIndex})`);
+
+            // Notify main server về shift mới từ backup
+            try {
+                await notificationService.notifyMainServerShiftChanged(newShift);
+            } catch (notifyError) {
+                console.error(`[${machine.name}] Failed to notify backup shift:`, notifyError.message);
+            }
+            
+            return newShift;
+
+        } catch (error) {
+            console.error(`[${machine.name}] Error creating backup shift:`, error.message);
+            throw error;
+        }
+    }
 }
 
-export const workShiftService = new WorkShiftService();
+export const saltMachineService = new SaltMachineService();

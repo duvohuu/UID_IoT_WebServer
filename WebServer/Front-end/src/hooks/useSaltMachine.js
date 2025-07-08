@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getMachineByIp } from '../api/machineAPI';
 
-export const useMachineDetail = (ip) => {
+export const useSaltMachine = (ip) => {
     const [machine, setMachine] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

@@ -1,7 +1,6 @@
 import { RegisterUtils } from './registerUtils.js';
 
 export class DataUtils {
-    // Transform raw register data into WorkShift model format
     static transformWorkShiftData(shift, monitoringData, adminData) {
         // Update monitoring data (40001-40008)
         shift.machineStatus = monitoringData['40001'] || 0;

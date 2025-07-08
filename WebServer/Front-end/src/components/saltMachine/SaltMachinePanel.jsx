@@ -22,10 +22,10 @@ import {
     Clear as ClearIcon,
     SelectAll as SelectAllIcon
 } from '@mui/icons-material';
-import WorkShiftCard from './WorkShiftCard';
-import WorkShiftFilter from './WorkShiftFilter';
+import SaltMachineCard from './SaltMachineCard';
+import SaltMachineFilter from './SaltMachineShiftFilter';
 
-const WorkShiftPanel = ({ 
+const SaltMachinePanel = ({ 
     selectedShiftData,
     shiftsLoading,
     shiftFilter,
@@ -80,7 +80,7 @@ const WorkShiftPanel = ({
                 </Alert>
                 
                 {/* Filter component */}
-                <WorkShiftFilter 
+                <SaltMachineFilter 
                     shiftFilter={shiftFilter}
                     onShiftFilterChange={onShiftFilterChange}
                 />
@@ -181,7 +181,7 @@ const WorkShiftPanel = ({
                                         display: 'block' 
                                     }}
                                 >
-                                    <WorkShiftCard 
+                                    <SaltMachineCard 
                                         shift={shift} 
                                         onClick={onShiftClick}
                                         isSelected={selectedShiftData?._id === shift._id}
@@ -220,4 +220,4 @@ const WorkShiftPanel = ({
     );
 };
 
-export default WorkShiftPanel;
+export default SaltMachinePanel;

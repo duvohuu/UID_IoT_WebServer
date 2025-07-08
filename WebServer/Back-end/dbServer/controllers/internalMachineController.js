@@ -1,6 +1,6 @@
 import Machine from "../models/Machine.js";
 import User from "../models/User.js";
-import WorkShift from "../models/Workshift.js"; 
+import SaltMachine from "../models/SaltMachine.js"; 
 
 
 export const getAllMachines = async (req, res) => {
@@ -77,13 +77,13 @@ export const deleteMachine = async (req, res) => {
         console.log(`\n🔄 Processing machine: ${machineId}`);
         
         console.log(`   🗑️ Permanently deleting ALL work shifts for ${machineId}...`);
-        const deletedShifts = await WorkShift.deleteMany({ machineId: machineId });
+        const deletedShifts = await SaltMachine.deleteMany({ machineId: machineId });
         console.log(`   ✅ PERMANENTLY DELETED ${deletedShifts.deletedCount} work shifts`);
         
-        const remainingShifts = await WorkShift.find({ machineId: machineId });
+        const remainingShifts = await SaltMachine.find({ machineId: machineId });
         if (remainingShifts.length > 0) {
             console.log(`   ⚠️  WARNING: Still found ${remainingShifts.length} shifts. Force deleting...`);
-            await WorkShift.deleteMany({ machineId: machineId });
+            await SaltMachine.deleteMany({ machineId: machineId });
             console.log(`   🔧 Force deleted remaining shifts`);
         }
         
@@ -92,7 +92,7 @@ export const deleteMachine = async (req, res) => {
             console.log(`   ✅ PERMANENTLY DELETED machine: ${deletedMachine.machineId} - ${deletedMachine.name}`);
         }
         
-        const finalCheck = await WorkShift.find({ machineId: machineId });
+        const finalCheck = await SaltMachine.find({ machineId: machineId });
         console.log(`   🔍 Final verification: ${finalCheck.length} remaining shifts (should be 0)`);
         
         res.json({ 

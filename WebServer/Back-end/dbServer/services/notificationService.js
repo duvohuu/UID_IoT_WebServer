@@ -1,5 +1,5 @@
 import axios from "axios";
-import WorkShift from "../models/Workshift.js";
+import SaltMachine from "../models/SaltMachine.js";
 
 class NotificationService {
     constructor() {
@@ -67,7 +67,7 @@ class NotificationService {
 
     async notifyMainServerShiftChanged(shift) {
         try {
-            const latestShift = await WorkShift.findById(shift._id);
+            const latestShift = await SaltMachine.findById(shift._id);
             if (!latestShift) {
                 console.error(`❌ Shift ${shift.shiftId} not found in database`);
                 return;

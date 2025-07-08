@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, Chip } from '@mui/material';
 
-const WorkShiftFilter = ({ shiftFilter, onShiftFilterChange }) => {
+const SaltMachineFilter = ({ shiftFilter, onShiftFilterChange }) => {
     const statusOptions = [
         { value: 'all', label: 'Tất cả', color: 'default' },
         { value: 'complete', label: 'Hoàn thành', color: 'success' },
@@ -32,4 +32,4 @@ const WorkShiftFilter = ({ shiftFilter, onShiftFilterChange }) => {
     );
 };
 
-export default WorkShiftFilter;
+export default SaltMachineFilter;
