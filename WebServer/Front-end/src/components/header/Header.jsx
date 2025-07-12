@@ -14,8 +14,8 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import { styled, alpha } from "@mui/material/styles";
-import LoginDialog from "./LoginDialog";
-import AvatarMenu from "./AvatarMenu";
+import LoginDialog from "../header/LoginDialog";
+import AvatarMenu from "../header/AvatarMenu";
 import useAuth from "../../hooks/useAuth";
 import io from "socket.io-client";
 

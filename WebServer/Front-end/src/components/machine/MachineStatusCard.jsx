@@ -152,44 +152,47 @@ const MachineStatusCard = ({ machine, user, onClick, onDelete }) => {
             >
                 <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 0 }}>
                     
-                    {/* ADMIN HEADER SECTION */}
-                    {isAdmin && (
-                        <Box sx={{ mb: 2, pt: 0.5 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 1.5, mb: 1.5}}>
-                                <Chip
-                                    icon={<CompanyIcon />}
-                                    label={machine.machineId || 'N/A'}
-                                    size="medium"
-                                    variant="filled"
-                                    color="primary"
-                                    sx={{ 
-                                        fontFamily: 'monospace', 
-                                        fontWeight: 'bold',
-                                        fontSize: '0.8rem',
-                                        height: 30,
-                                        borderRadius: 3,
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                    }}
-                                />
-                                
-                                <Chip
-                                    icon={<AdminIcon />}
-                                    label="ADMIN"
-                                    size="medium"
-                                    variant="outlined"
-                                    sx={{ 
-                                        fontSize: '0.8rem',
-                                        height: 30,
-                                        borderRadius: 3,
-                                        color: theme.palette.secondary.main,
-                                        borderColor: theme.palette.secondary.main,
-                                        backgroundColor: theme.palette.secondary.main + '08',
-                                        fontWeight: 600,
-                                        '&:hover': {
-                                            backgroundColor: theme.palette.secondary.main + '15',
-                                        }
-                                    }}
-                                />
+                    <Box sx={{ mb: 2, pt: 0.5 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 1.5, mb: 1.5}}>
+                            <Chip
+                                icon={<CompanyIcon />}
+                                label={machine.machineId || 'N/A'}
+                                size="medium"
+                                variant="filled"
+                                color="primary"
+                                sx={{ 
+                                    fontFamily: 'monospace', 
+                                    fontWeight: 'bold',
+                                    fontSize: '0.8rem',
+                                    height: 30,
+                                    borderRadius: 3,
+                                    mr: isAdmin ? 0 : 6.5,
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                }}
+                            />
+                            
+                            {/* ADMIN CHIP - ONLY FOR ADMIN */}
+                            <Chip
+                                icon={isAdmin ? <AdminIcon /> : <UserIcon />}
+                                label = {isAdmin ? "ADMIN" : "USER"}
+                                size="medium"
+                                variant="outlined"
+                                sx={{ 
+                                    fontSize: '0.8rem',
+                                    height: 30,
+                                    borderRadius: 3,
+                                    color: theme.palette.secondary.main,
+                                    borderColor: theme.palette.secondary.main,
+                                    backgroundColor: theme.palette.secondary.main + '08',
+                                    fontWeight: 600,
+                                    '&:hover': {
+                                        backgroundColor: theme.palette.secondary.main + '15',
+                                    }
+                                }}
+                            />
+                            
+                            {/* DELETE BUTTON - ONLY FOR ADMIN */}
+                            {isAdmin && (
                                 <Tooltip title="Xóa máy" arrow>
                                     <IconButton
                                         size="small"
@@ -211,14 +214,14 @@ const MachineStatusCard = ({ machine, user, onClick, onDelete }) => {
                                         <DeleteIcon fontSize="small" />
                                     </IconButton>
                                 </Tooltip>
-                            </Box>
-                            
-                            <Divider sx={{ 
-                                borderColor: theme.palette.divider,
-                                opacity: 0.6, 
-                            }} />
+                            )}
                         </Box>
-                    )}
+                        
+                        <Divider sx={{ 
+                            borderColor: theme.palette.divider,
+                            opacity: 0.6, 
+                        }} />
+                    </Box>
 
                     {/* MACHINE HEADER WITH STATUS BADGE */}
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3, mb: 2 }}>

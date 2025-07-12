@@ -12,6 +12,23 @@ class ModbusService {
         this.isPolling = false;
     }
 
+    logMachine(machine, message, level = 'info') {
+        const prefix = `[${machine.name}]`;
+        switch (level) {
+            case 'error':
+                console.error(`${prefix} ${message}`);
+                break;
+            case 'warn':
+                console.warn(`${prefix} ${message}`);
+                break;
+            default:
+                console.log(`${prefix} ${message}`);
+        }
+    }
+
+    // ========================================
+    // START THE MODBUS POLLING SYSTEM
+    // ========================================
     async startPolling() {
         if (this.isPolling) return;
         
@@ -33,6 +50,9 @@ class ModbusService {
         console.log('Modbus polling system initialized');
     }
 
+    // ========================================
+    // START SCANNING ALL MACHINES
+    // ========================================
     async scanAllMachines() {
         try {
             console.log('Starting scan cycle for all machines...');
@@ -56,17 +76,14 @@ class ModbusService {
                 const isNowOnline = updatedMachine.isConnected;
 
                 if (wasOnline && !isNowOnline) {
-                    console.log(`[${machine.name}] Connection loss detected - handling shift update`);
+                    this.logMachine(machine, `Connection loss detected - handling shift update`);
                     await this.handleConnectionLoss(machine);
                 }
-                
-                // this.logStatusChange(machine.name, wasOnline, isNowOnline);
-                
+                                
                 if (i < allMachines.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, NETWORK_CONFIG.delayBetweenScans));
                 }
             }
-            
             
             const onlineCount = await Machine.countDocuments({ isConnected: true });
             const offlineCount = allMachines.length - onlineCount;
@@ -79,6 +96,9 @@ class ModbusService {
         }
     }
 
+    // ========================================
+    // READ DATA FROM A MACHINE
+    // ========================================
     async readMachineData(machine) {
         const lockKey = `${machine._id}`;
         if (this.machineConnectionLocks.has(lockKey)) return;
@@ -92,8 +112,11 @@ class ModbusService {
         }
     }
 
+    // ========================================
+    // HANDLE READING DATA FROM A MACHINE
+    // ========================================
     async performModbusRead(machine) {
-        return new Promise((resolve) => {
+        return new Promise(async (resolve) => {
             const client = new net.Socket();
             client.setTimeout(MODBUS_CONFIG.timeout);
             let isResolved = false;
@@ -107,136 +130,210 @@ class ModbusService {
                 } catch {}
             };
 
-            connectionTimer = setTimeout(async () => {
-                if (!isResolved) {
-                    console.log(`[${machine.name}] Connection timeout - updating status to offline`);
-                
-                    await this.handleConnectionLoss(machine);
-                    
-                    await this.updateMachineStatus(machine._id, { 
-                        isConnected: false, 
-                        status: 'offline', 
-                        lastError: 'Connection timeout - No response from machine', 
-                        disconnectedAt: new Date() 
-                    });
-                    
-                    isResolved = true; 
-                    cleanup();
-                    resolve({ success: false, error: 'timeout' });
-                }
-            }, MODBUS_CONFIG.timeout);
-
-            client.connect(MODBUS_CONFIG.port, machine.ip, () => {
-                const { buffer } = this.createModbusRequest(machine);
-                client.write(buffer);
-            });
-
-            client.on('data', async (data) => {
+            const completeWithError = async (error, message) => {
                 if (isResolved) return;
                 
-                if (data.length >= 9 && data[7] > 0x80) {
-                    await this.updateMachineStatus(machine._id, { 
-                        isConnected: false, 
-                        status: 'error', 
-                        lastError: `ModBus error ${data[8]}`, 
-                        disconnectedAt: new Date() 
-                    });
-                    isResolved = true; 
-                    cleanup(); 
-                    resolve();
+                this.logMachine(machine, message, 'error');
+                await this.handleConnectionLoss(machine);
+                
+                await this.updateMachineStatus(machine._id, {
+                    isConnected: false,
+                    status: 'offline',
+                    lastError: error,
+                    disconnectedAt: new Date()
+                });
+                
+                isResolved = true;
+                cleanup();
+                resolve({ success: false, error });
+            };
+
+            connectionTimer = setTimeout(() => 
+                completeWithError('timeout', 'Connection timeout - updating status to offline'), 
+                MODBUS_CONFIG.timeout
+            );
+
+            try {
+                // Kết nối đến thiết bị
+                await new Promise((connectResolve, connectReject) => {
+                    client.connect(MODBUS_CONFIG.port, machine.ip, () => connectResolve());
+                    client.once('error', (err) => connectReject(err));
+                });
+                
+                // Đọc 70 thanh ghi đầu tiên (40001-40070)
+                const mainRegistersResult = await this.readModbusRegisters(machine, 0, 70, { 
+                    useExistingClient: client 
+                });
+                
+                if (!mainRegistersResult || isResolved) {
+                    if (!isResolved) {
+                        await completeWithError('Failed to read main registers', 'Failed to read main registers');
+                    }
                     return;
                 }
-
-                const expectedDataLength = 9 + (570 * 2);
-                if (data.length >= expectedDataLength) {
-                    const allRegisters = [];
-                    for (let i = 0; i < 570; i++) {
-                        allRegisters[i] = data.readUInt16BE(9 + (i * 2));
-                    }
-
-                    const currentRegisters = allRegisters.slice(0, 70);
-                    const backupRegisters = this.extractBackupShifts(allRegisters);
-                    try {
-                        console.log(`[${machine.name}] Processing current shift...`);
-                        await saltMachineService.handleTracking(machine, currentRegisters);
-                        
-                        console.log(`[${machine.name}] Processing backup shifts...`);
-                        await saltMachineService.handleBackupShifts(machine, backupRegisters);
-
-                        console.log(`[${machine.name}] saltMachineService completed`);
-                    } catch (shiftError) {
-                        console.error(`[${machine.name}] saltMachineService error:`, shiftError.message);
-                    }
-                    const parameters = {
-                        // Monitoring data (40001-40011)
-                        monitoringData: Object.fromEntries(
-                            Array.from({length: 11}, (_, i) => [
-                                `4000${i + 1}`, 
-                                allRegisters[i] || 0
-                            ])
-                        ),
-                        // Admin data (40012-40070)
-                        adminData: Object.fromEntries(
-                            Array.from({length: 59}, (_, i) => [
-                                (40012 + i).toString(), 
-                                allRegisters[i + 11] || 0
-                            ])
-                        )
-                    };
-                    
-                    await this.updateMachineStatus(machine._id, { 
-                        isConnected: true, 
-                        status: 'online', 
-                        lastHeartbeat: new Date(), 
-                        parameters, 
-                        lastError: null 
-                    });
-                    
-                    isResolved = true; 
-                    cleanup(); 
-                    resolve();
-                }
-            });
-
-            client.on('error', async (err) => {
-                if (!isResolved) {
-                    console.log(`[${machine.name}] Connection error - checking last machine status`);
-                    
-                    await this.handleConnectionLoss(machine);
-                    
-                    await this.updateMachineStatus(machine._id, {
-                        isConnected: false,
-                        status: 'offline',
-                        lastError: err.message,
-                        disconnectedAt: new Date()
-                    });
-                    
-                    isResolved = true;
-                    cleanup();
-                    resolve({ success: false, error: err.message });
-                }
-            });
-
-            client.on('timeout', async () => {
-                if (isResolved) return;
-                await this.updateMachineStatus(machine._id, { 
-                    isConnected: false, 
-                    status: 'timeout', 
-                    lastError: 'Socket timeout', 
-                    disconnectedAt: new Date() 
+                
+                // Thêm độ trễ nhỏ giữa các lần đọc
+                await new Promise(r => setTimeout(r, 100));
+                
+                // Đọc riêng thanh ghi 40100 để tránh xung đột
+                const backupRegisterResult = await this.readModbusRegisters(machine, 99, 1, {
+                    returnSingleValue: true
                 });
-                isResolved = true; 
-                cleanup(); 
-                resolve();
-            });
+                
+                if (backupRegisterResult === null && !isResolved) {
+                    this.logMachine(machine, `Warning: can't read the 40100 register privately`, 'warn');
+                }
+                
+                const allRegisters = mainRegistersResult.registers;
+                // Sử dụng giá trị từ lần đọc trực tiếp nếu có, nếu không thì sử dụng giá trị mặc định
+                const backupRegister = backupRegisterResult !== null ? backupRegisterResult : 0;
+                
+                this.logMachine(machine, `Register 40100: ${backupRegister} (${backupRegister.toString(2).padStart(16, '0')})`);
 
-            client.on('close', () => {
-                if (!isResolved) { 
+                try {
+                    this.logMachine(machine, `Processing current shift...`);
+                    await saltMachineService.handleTracking(machine, allRegisters);
+                    
+                    this.logMachine(machine, `Processing backup shifts...`);
+                    await this.processBackupShifts(machine, null, backupRegister);
+
+                    this.logMachine(machine, `saltMachineService completed`);
+                } catch (shiftError) {
+                    this.logMachine(machine, `saltMachineService error: ${shiftError.message}`, 'error');
+                }
+
+                const parameters = {
+                    // Monitoring data (40001-40011)
+                    monitoringData: Object.fromEntries(
+                        Array.from({length: 11}, (_, i) => [`4000${i + 1}`, allRegisters[i] || 0])
+                    ),
+                    // Admin data (40012-40070)
+                    adminData: Object.fromEntries(
+                        Array.from({length: 59}, (_, i) => [(40012 + i).toString(), allRegisters[i + 11] || 0])
+                    ),
+                    // Backup status register
+                    backupStatus: {
+                        '40100': backupRegister,
+                    }
+                };
+                
+                await this.updateMachineStatus(machine._id, { 
+                    isConnected: true, 
+                    status: 'online', 
+                    lastHeartbeat: new Date(), 
+                    parameters, 
+                    lastError: null 
+                });
+                
+                if (!isResolved) {
                     isResolved = true; 
                     cleanup(); 
-                    resolve(); 
+                    resolve({ success: true });
+                }
+            } catch (err) {
+                await completeWithError(err.message, `Connection error - checking last machine status`);
+            }
+        });
+    }
+
+    // ========================================
+    // READ MODBUS REGISTERS
+    // ========================================
+    async readModbusRegisters(machine, startRegister, count, options = {}) {
+        const { 
+            useExistingClient = null, 
+            timeout = 5000, 
+            returnSingleValue = false 
+        } = options;
+        
+        let client = useExistingClient;
+        let needToCleanup = false;
+        
+        if (!client) {
+            client = new net.Socket();
+            client.setTimeout(timeout);
+            needToCleanup = true;
+            
+            try {
+                await new Promise((connectResolve, connectReject) => {
+                    client.connect(MODBUS_CONFIG.port, machine.ip, () => connectResolve());
+                    client.once('error', (err) => connectReject(err));
+                });
+            } catch (err) {
+                if (needToCleanup && !client.destroyed) client.destroy();
+                this.logMachine(machine, `Error connecting when reading: ${err.message}`, 'error');
+                return null;
+            }
+        }
+        
+        return new Promise((resolve) => {
+            const { buffer } = this.createModbusReadRequest(machine, startRegister, count);
+            let readResolved = false;
+            
+            const cleanup = () => {
+                if (needToCleanup && !client.destroyed) {
+                    client.removeAllListeners();
+                    client.destroy();
+                }
+            };
+            
+            const readTimeout = setTimeout(() => {
+                if (!readResolved) {
+                    this.logMachine(machine, `Time out when reading from ${startRegister + 1} to ${startRegister + count} hết thời gian`, 'warn');
+                    readResolved = true;
+                    cleanup();
+                    resolve(null);
+                }
+            }, timeout);
+            
+            const onReadResponse = (data) => {
+                if (readResolved) return;
+                
+                if (data.length >= 9 && data[7] > 0x80) {
+                    this.logMachine(machine, `Error in Modbus when reading: ${data[8]}`, 'error');
+                    readResolved = true;
+                    clearTimeout(readTimeout);
+                    client.removeListener('data', onReadResponse);
+                    cleanup();
+                    resolve(null);
+                    return;
+                }
+                
+                const expectedDataLength = 9 + (count * 2);
+                if (data.length >= expectedDataLength) {
+                    const registers = [];
+                    for (let i = 0; i < count; i++) {
+                        registers[i] = data.readUInt16BE(9 + (i * 2));
+                    }
+                    
+                    readResolved = true;
+                    clearTimeout(readTimeout);
+                    client.removeListener('data', onReadResponse);
+                    cleanup();
+                    
+                    if (returnSingleValue && count === 1) {
+                        resolve(registers[0]);  
+                    } else {
+                        resolve({
+                            registers,
+                            raw: data
+                        });
+                    }
+                }
+            };
+            
+            client.on('data', onReadResponse);
+            client.on('error', (err) => {
+                if (!readResolved) {
+                    this.logMachine(machine, `Error when reading register: ${err.message}`, 'error');
+                    readResolved = true;
+                    clearTimeout(readTimeout);
+                    cleanup();
+                    resolve(null);
                 }
             });
+            
+            client.write(buffer);
         });
     }
 
@@ -250,7 +347,7 @@ class ModbusService {
             
             if (machine) {
                 if (!updateData.isConnected && machine.isConnected) {
-                    console.log(`[${machine.name}] Detected connection loss - Notifying work shift service`);
+                    this.logMachine(machine, `Detected connection loss - Notifying work shift service`);
                     await saltMachineService.handleConnectionLoss(machine);
                 }
                 
@@ -261,6 +358,9 @@ class ModbusService {
         }
     }
 
+    // ========================================
+    // HANDLE CONNECTION LOSS
+    // ========================================
     async handleConnectionLoss(machine) {
         try {            
             let lastMachineStatus = saltMachineService.lastMachinesStatus.get(machine.machineId);
@@ -273,45 +373,236 @@ class ModbusService {
                 status: { $in: ['active', 'paused'] }
             }).sort({ createdAt: -1 });
             
-            if (activeOrPausedShifts.length > 0) {
-                for (const shift of activeOrPausedShifts) {
-                    let newStatus;
-                    
-                    if (lastMachineStatus === 1) {
-                        newStatus = 'incomplete';
-                        console.log(`[${machine.name}] Shift ${shift.shiftId}: Machine was RUNNING before disconnect -> INCOMPLETE`);
-                    } else if (lastMachineStatus === 0) {
-                        newStatus = 'complete';
-                        shift.endTime = new Date();
-                        console.log(`[${machine.name}] Shift ${shift.shiftId}: Machine was STOPPED before disconnect -> COMPLETED`);
-                    } else {
-                        newStatus = 'incomplete';
-                        console.log(`[${machine.name}] Shift ${shift.shiftId}: No machine status available -> INCOMPLETE (default)`);
-                    }
-                    
-                    shift.status = newStatus;
-                    
-                    await shift.save();
-                    console.log(`[${machine.name}] Updated shift ${shift.shiftId} status to: ${newStatus}`);
-                    
-                    try {
-                        await notificationService.notifyMainServerShiftChanged(shift);
-                    } catch (notifyError) {
-                        console.error(`[${machine.name}] Failed to notify shift change:`, notifyError.message);
-                    }
+            if (activeOrPausedShifts.length === 0) {
+                this.logMachine(machine, `No active or paused shifts found to update`);
+                return;
+            }
+            
+            for (const shift of activeOrPausedShifts) {
+                let newStatus;
+                
+                if (lastMachineStatus === 1) {
+                    newStatus = 'incomplete';
+                    this.logMachine(machine, `Shift ${shift.shiftId}: Machine was RUNNING before disconnect -> INCOMPLETE`);
+                } else if (lastMachineStatus === 0) {
+                    newStatus = 'complete';
+                    shift.endTime = new Date();
+                    this.logMachine(machine, `Shift ${shift.shiftId}: Machine was STOPPED before disconnect -> COMPLETED`);
+                } else {
+                    newStatus = 'incomplete';
+                    this.logMachine(machine, `Shift ${shift.shiftId}: No machine status available -> INCOMPLETE (default)`);
                 }
                 
-                console.log(`[${machine.name}] Completed updating ${activeOrPausedShifts.length} active/paused shifts`);
-            } else {
-                console.log(`[${machine.name}] No active or paused shifts found to update`);
+                shift.status = newStatus;
+                
+                await shift.save();
+                this.logMachine(machine, `Updated shift ${shift.shiftId} status to: ${newStatus}`);
+                
+                try {
+                    await notificationService.notifyMainServerShiftChanged(shift);
+                } catch (notifyError) {
+                    this.logMachine(machine, `Failed to notify shift change: ${notifyError.message}`, 'error');
+                }
             }
+            
+            this.logMachine(machine, `Completed updating ${activeOrPausedShifts.length} active/paused shifts`);
                         
         } catch (error) {
-            console.error(`[${machine.name}] Error handling connection loss:`, error.message);
+            this.logMachine(machine, `Error handling connection loss: ${error.message}`, 'error');
         }
     }
+    
+    async processBackupShifts(machine, client, backupRegister) {
+        let localClient = client;
+        let needToCleanup = false;
+        
+        if (!localClient) {
+            localClient = new net.Socket();
+            needToCleanup = true;
+            
+            try {
+                await new Promise((resolve, reject) => {
+                    localClient.connect(MODBUS_CONFIG.port, machine.ip, () => resolve());
+                    localClient.once('error', (err) => reject(err));
+                });
+            } catch (err) {
+                this.logMachine(machine, `Lỗi kết nối khi xử lý backup: ${err.message}`, 'error');
+                if (needToCleanup && !localClient.destroyed) localClient.destroy();
+                return;
+            }
+        }
+        
+        try {
+            this.logMachine(machine, `Register 40100 value: ${backupRegister.toString(2).padStart(16, '0')}`);
+        
+            const lastBackupRegister = machine.parameters?.backupStatus?.['40100'];
+            if (lastBackupRegister > 0 && backupRegister === 0) {
+                this.logMachine(machine, `PHÁT HIỆN LỖI: Thanh ghi 40100 đột ngột từ ${lastBackupRegister.toString(2).padStart(16, '0')} thành 0`, 'warn');
+            }
+            
+            if (backupRegister === 0) {
+                this.logMachine(machine, `CẢNH BÁO: Phát hiện thanh ghi 40100 = 0, tiến hành xác minh trực tiếp`, 'warn');
+                
+                // Đọc trực tiếp để xác minh
+                try {
+                    const verifiedRegister = await this.readModbusRegisters(machine, 99, 1, {
+                        returnSingleValue: true
+                    });
+                    
+                    if (verifiedRegister !== null && verifiedRegister !== 0) {
+                        this.logMachine(machine, `Đã xác minh thanh ghi 40100 = ${verifiedRegister.toString(2).padStart(16, '0')}`);
+                        backupRegister = verifiedRegister;
+                        
+                        // Lưu lại vấn đề để phân tích
+                        this.logMachine(machine, `LỖI ĐỌC: Đã sửa giá trị thanh ghi từ 0 thành ${verifiedRegister}`);
+                    }
+                } catch (err) {
+                    this.logMachine(machine, `Lỗi khi xác minh thanh ghi 40100: ${err.message}`, 'error');
+                }
+            }
+            
+            const shiftStatusBits = backupRegister & 0x3FF; 
+            
+            let updatedbackupRegister = backupRegister;
+            let hasUnreadShifts = false;
+            
+            // Xử lý các ca chưa đọc
+            for (let shiftIndex = 0; shiftIndex < 10; shiftIndex++) {
+                const bitPosition = shiftIndex; 
+                const isShiftRead = (shiftStatusBits >> bitPosition) & 1;
+                
+                if (isShiftRead === 0) { 
+                    this.logMachine(machine, `Found unread shift at position ${shiftIndex + 1} (bit ${bitPosition})`);
+                    hasUnreadShifts = true;
+                    
+                    try {
+                        // Đọc dữ liệu ca backup
+                        const startRegister = 100 + (shiftIndex * 100);
+                        const shiftData = await this.readModbusRegisters(machine, startRegister, 100, {
+                            useExistingClient: localClient,
+                            timeout: 5000
+                        });
+                        
+                        if (shiftData) {
+                            const relevantData = {
+                                index: shiftIndex + 1,
+                                registers: shiftData.registers.slice(0, 70)
+                            };
+                            
+                            await saltMachineService.handleBackupShift(machine, relevantData, shiftIndex);
+                            this.logMachine(machine, `Marked shift ${shiftIndex + 1} as read`);
+                        } else {
+                            this.logMachine(machine, `Failed to read backup shift ${shiftIndex + 1} - marking as read anyway`, 'warn');
+                        }
+                        
+                        // Đánh dấu ca đã đọc
+                        const bitMask = 1 << bitPosition;
+                        updatedbackupRegister |= bitMask;
+                        this.logMachine(machine, `Updated register 40100: ${updatedbackupRegister.toString(2).padStart(16, '0')}`);
+                    } catch (error) {
+                        this.logMachine(machine, `Error reading backup shift ${shiftIndex + 1}: ${error.message}`, 'error');
+                    }
+                }
+            }
+            
+            // Ghi lại giá trị thanh ghi đã cập nhật
+            if (hasUnreadShifts && updatedbackupRegister !== backupRegister) {
+                this.logMachine(machine, `Đang ghi lại thanh ghi 40100 = ${updatedbackupRegister.toString(2).padStart(16, '0')} vào thiết bị`);
+                
+                await this.writeModbusRegister(machine, 99, updatedbackupRegister, { 
+                    useExistingClient: localClient 
+                });
+                
+                // Xác minh sau khi ghi
+                const verifiedAfterWrite = await this.readModbusRegisters(machine, 99, 1, {
+                    useExistingClient: localClient,
+                    returnSingleValue: true
+                });
+                
+                this.logMachine(machine, `Xác minh sau khi ghi: 40100 = ${verifiedAfterWrite !== null ? 
+                    verifiedAfterWrite.toString(2).padStart(16, '0') : 'null'}`);
+            }
+        } finally {
+            if (needToCleanup && localClient && !localClient.destroyed) {
+                localClient.destroy();
+            }
+        }
+    }
+    // WRITE TO A MODBUS REGISTER
+    async writeModbusRegister(machine, registerAddress, value, options = {}) {
+        const { useExistingClient = null, timeout = 3000 } = options;
+        let client = useExistingClient;
+        let needToCleanup = false;
+        
+        if (!client) {
+            client = new net.Socket();
+            needToCleanup = true;
+            
+            try {
+                await new Promise((resolve, reject) => {
+                    client.connect(MODBUS_CONFIG.port, machine.ip, () => resolve());
+                    client.once('error', (err) => reject(err));
+                });
+            } catch (err) {
+                this.logMachine(machine, `Lỗi kết nối khi ghi thanh ghi: ${err.message}`, 'error');
+                if (needToCleanup && !client.destroyed) client.destroy();
+                return false;
+            }
+        }
+        
+        return new Promise((resolve) => {
+            const { buffer } = this.createModbusWriteRequest(machine, registerAddress, value);
+            let writeResolved = false;
+            
+            const cleanup = () => {
+                if (needToCleanup && !client.destroyed) {
+                    client.removeAllListeners();
+                    client.destroy();
+                }
+            };
+            
+            const writeTimeout = setTimeout(() => {
+                if (!writeResolved) {
+                    this.logMachine(machine, `Write timeout for register ${registerAddress + 1}`, 'warn');
+                    writeResolved = true;
+                    cleanup();
+                    resolve(false);
+                }
+            }, timeout);
 
-    createModbusRequest(machine) {
+            const onWriteResponse = (data) => {
+                if (writeResolved) return;
+                
+                if (data.length >= 8) {
+                    this.logMachine(machine, `Successfully updated register ${registerAddress + 1} = ${value} (${value.toString(2).padStart(16, '0')})`);
+                    writeResolved = true;
+                    clearTimeout(writeTimeout);
+                    client.removeListener('data', onWriteResponse);
+                    client.removeListener('error', onWriteError);
+                    cleanup();
+                    resolve(true);
+                }
+            };
+
+            const onWriteError = (err) => {
+                if (!writeResolved) {
+                    this.logMachine(machine, `Error writing register ${registerAddress + 1}: ${err.message}`, 'error');
+                    writeResolved = true;
+                    clearTimeout(writeTimeout);
+                    client.removeListener('data', onWriteResponse);
+                    client.removeListener('error', onWriteError);
+                    cleanup();
+                    resolve(false);
+                }
+            };
+
+            client.on('data', onWriteResponse);
+            client.on('error', onWriteError);
+            client.write(buffer);
+        });
+    }
+
+    createModbusReadRequest(machine, startRegister = 0, registerCount = 70) {
         const buffer = Buffer.alloc(12);
         const transactionId = this.getNextTransactionId(machine._id);
         buffer.writeUInt16BE(transactionId, 0);
@@ -319,8 +610,21 @@ class ModbusService {
         buffer.writeUInt16BE(6, 4);
         buffer.writeUInt8(1, 6);
         buffer.writeUInt8(3, 7);
-        buffer.writeUInt16BE(0, 8);
-        buffer.writeUInt16BE(570, 10);
+        buffer.writeUInt16BE(startRegister, 8);
+        buffer.writeUInt16BE(registerCount, 10);
+        return { buffer, transactionId };
+    }
+
+    createModbusWriteRequest(machine, registerAddress, value) {
+        const buffer = Buffer.alloc(12);
+        const transactionId = this.getNextTransactionId(machine._id);
+        buffer.writeUInt16BE(transactionId, 0);
+        buffer.writeUInt16BE(0, 2);
+        buffer.writeUInt16BE(6, 4);
+        buffer.writeUInt8(1, 6);
+        buffer.writeUInt8(6, 7); 
+        buffer.writeUInt16BE(registerAddress, 8);
+        buffer.writeUInt16BE(value, 10);
         return { buffer, transactionId };
     }
 
@@ -330,53 +634,7 @@ class ModbusService {
         currentId++;
         this.machineTransactionIds.set(machineId, currentId);
         return currentId;
-    }
-
-    extractBackupShifts(allRegisters) {
-        const backupShifts = [];
-        
-        console.log(`Total registers available: ${allRegisters.length}`);
-        
-        for (let shiftIndex = 0; shiftIndex < 5; shiftIndex++) {
-            const startIdx = 100 + (shiftIndex * 100); 
-            
-            if (startIdx + 70 > allRegisters.length) {
-                console.log(`Backup shift ${shiftIndex + 1}: Not enough data (need ${startIdx + 70}, have ${allRegisters.length})`);
-                continue;
-            }
-            
-            const shiftRegisters = allRegisters.slice(startIdx, startIdx + 70);
-            
-            const shiftIdLow = shiftRegisters[8] || 0; 
-            const shiftIdHigh = shiftRegisters[9] || 0;  
-                        
-            if (shiftIdLow !== 0 || shiftIdHigh !== 0) {
-                backupShifts.push({
-                    index: shiftIndex + 1,
-                    registers: shiftRegisters
-                });
-                console.log(`Found valid backup shift ${shiftIndex + 1}: ${shiftIdLow}-${shiftIdHigh}`);
-            } else {
-                console.log(`Backup shift ${shiftIndex + 1}: No valid shift ID (both Low and High are 0)`);
-            }
-        }
-        
-        console.log(`Total backup shifts found: ${backupShifts.length}`);
-        return backupShifts;
-    }
-    
-    logStatusChange(machineName, wasOnline, isNowOnline) {
-        if (!wasOnline && isNowOnline) {
-            console.log(`[${machineName}] Machine came ONLINE - Data updated`);
-        } else if (wasOnline && !isNowOnline) {
-            console.log(`[${machineName}] Machine went OFFLINE`);
-        } else if (isNowOnline) {
-            console.log(`[${machineName}] Online - Data refreshed`);
-        } else {
-            console.log(`[${machineName}] Still offline`);
-        }
-    }
-
+    }  
 }
 
 export const modbusService = new ModbusService();

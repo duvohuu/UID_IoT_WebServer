@@ -97,7 +97,7 @@ class NotificationService {
                 loadcellConfigs: latestShift.loadcellConfigs,
             };
             
-            console.log(`📤 [${latestShift.machineName}] Sending notification: ${latestShift.shiftId} -> ${latestShift.status}`);
+            console.log(`[${latestShift.machineName}] Sending notification: ${latestShift.shiftId} -> ${latestShift.status}`);
             
             await axios.post(`${this.mainServerUrl}/api/internal/shift-changed`, payload, {
                 timeout: 5000,
