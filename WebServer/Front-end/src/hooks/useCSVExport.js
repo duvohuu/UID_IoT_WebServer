@@ -276,15 +276,13 @@ export const useCSVExport = () => {
 
             allCsvData.push([]);
 
-            // ✅ THỐNG KÊ TỔNG HỢP
+            // THỐNG KÊ TỔNG HỢP
             allCsvData.push(['=== THỐNG KÊ TỔNG HỢP ===']);
             const totalWeight = sortedShiftsData.reduce((sum, shift) => sum + Number(shift.totalWeightFilled || 0), 0);
             const totalBottles = sortedShiftsData.reduce((sum, shift) => sum + Number(shift.totalBottlesFilled || 0), 0);
             const totalDuration = sortedShiftsData.reduce((sum, shift) => sum + Number(shift.duration || 0), 0);
             const totalPaused = sortedShiftsData.reduce((sum, shift) => sum + Number(shift.pauseTracking?.totalPausedMinutes || 0), 0);
-            const avgEfficiency = sortedShiftsData.reduce((sum, shift) => sum + Number(shift.efficiency || 0), 0) / sortedShiftsData.length;
-            const avgFillRate = sortedShiftsData.reduce((sum, shift) => sum + Number(shift.fillRate || 0), 0) / sortedShiftsData.length;
-            
+
             const completedShifts = sortedShiftsData.filter(shift => shift.status === 'complete').length;
             const activeShifts = sortedShiftsData.filter(shift => shift.status === 'active').length;
             const pausedShifts = sortedShiftsData.filter(shift => shift.status === 'paused').length;
@@ -300,8 +298,6 @@ export const useCSVExport = () => {
             allCsvData.push(['Tổng số chai chiết', totalBottles]);
             allCsvData.push(['Tổng thời gian hoạt động (phút)', totalDuration]);
             allCsvData.push(['Tổng thời gian tạm dừng (phút)', totalPaused.toFixed(1)]);
-            allCsvData.push(['Hiệu suất trung bình (kg/h)', avgEfficiency.toFixed(2)]);
-            allCsvData.push(['Tốc độ chiết trung bình (chai/h)', avgFillRate.toFixed(0)]);
             allCsvData.push(['Thời gian hoạt động TB/ca (phút)', (totalDuration / sortedShiftsData.length).toFixed(1)]);
 
             const csvContent = allCsvData
@@ -311,7 +307,6 @@ export const useCSVExport = () => {
             const BOM = '\uFEFF';
             const finalContent = BOM + csvContent;
 
-            // ✅ Download
             const blob = new Blob([finalContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);

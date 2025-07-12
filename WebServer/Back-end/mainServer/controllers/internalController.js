@@ -54,7 +54,7 @@ export const handleShiftChanged = async (req, res) => {
             loadcellConfigs,
         } = req.body;
         
-        console.log(`📡 Received shift status change: ${shiftId} (${machineName}) -> ${status}`);
+        // console.log(`📡 Received shift status change: ${shiftId} (${machineName}) -> ${status}`);
         
         const io = req.app.get('io');
         

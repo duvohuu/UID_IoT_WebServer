@@ -102,7 +102,7 @@ const SaltMachinePanel = ({
                         {selectedShifts.length > 0 && (
                             <Chip 
                                 label={`${selectedShifts.length} ca đã chọn`}
-                                size='smal'
+                                size='small'
                                 color='secondar'
                                 onDelete={() => onSelectAllShifts([])}
                                 deleteIcon={<ClearIcon />}

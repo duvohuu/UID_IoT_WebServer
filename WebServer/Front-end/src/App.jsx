@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box, Toolbar, CssBaseline, ThemeProvider } from '@mui/material';
 import { getTheme } from './theme';
-import Header from './components/layout/Header';
+import Header from './components/header/Header';
 import Sidebar from './components/layout/Sidebar';
 import StatusPage from './pages/StatusPage';
 import SettingPage from './pages/SettingPage';

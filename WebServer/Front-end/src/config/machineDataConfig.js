@@ -25,9 +25,10 @@ export const MONITORING_DATA_CONFIG = {
         icon: RunningIcon,
         type: 'status',
         values: {
-            0: { label: 'Máy đang dừng', color: 'warning' },
-            1: { label: 'Máy đang hoạt động', color: 'success' },
-            2: { label: 'Tạm dừng', color: 'error' }
+            0: { label: 'Đang dừng', color: 'warning' },
+            1: { label: 'Đang hoạt động', color: 'success' },
+            2: { label: 'Tạm dừng', color: 'error' },
+            3: { label: 'Bán tự động', color: 'info' }
         }
     },
     saltTankStatus: {
@@ -99,7 +100,6 @@ export const MONITORING_DATA_CONFIG = {
     },
 };
 
-// ADMIN DATA - Chỉ admin mới xem được (từ WorkShift nested fields + raw registers)
 export const ADMIN_DATA_CONFIG = {
     // MOTOR CONTROL parameters (từ motorControl object)
     'motorControl.granularSalt.highFrequency': {
@@ -138,14 +138,14 @@ export const ADMIN_DATA_CONFIG = {
         range: '0 - 2000'
     },
     'motorControl.granularSaltThreshold': {
-        title: 'Ngưỡng chênh lệch - Muối hạt',
+        title: 'Chênh lệch - Muối hạt',
         icon: TuneIcon,
         type: 'interger',
         unit: 'g',
         range: '0 - 100'
     },
     'motorControl.fineSaltThreshold': {
-        title: 'Ngưỡng chênh lệch - Muối mịn',
+        title: 'Chênh lệch - Muối mịn',
         icon: TuneIcon,
         type: 'interger',
         unit: 'g',

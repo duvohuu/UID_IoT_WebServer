@@ -52,15 +52,12 @@ class SaltMachineService {
         const shiftInfo = RegisterUtils.getShiftIdFromParameters(machine, currentParameters);
         const { shiftId, shiftNumber, machineNumber } = shiftInfo;
         
-        console.log(`\n🔍 [${machine.name}] === SHIFT CHECK ===`);
-        console.log(`   🏭 Machine ID: ${machine.machineId}`); 
-        console.log(`   🏭 Machine Number: ${machineNumber}`); 
-        console.log(`   📋 Shift Number: ${shiftNumber}`);
-        console.log(`   🆔 Shift ID: ${shiftId}`);
+        console.log(`\n[${machine.name}] === SHIFT CHECK ===`);
+        console.log(`Shift ID: ${shiftId}`);
         
         if (shiftNumber === 0) {
-            console.log(`⏸️ [${machine.name}] No active shift (ID = 0)`);
-            console.log(`🔍 [${machine.name}] === END SHIFT CHECK ===\n`);
+            console.log(`[${machine.name}] No active shift (ID = 0)`);
+            console.log(`[${machine.name}] === END SHIFT CHECK ===\n`);
             return;
         }
 
@@ -81,7 +78,7 @@ class SaltMachineService {
             console.error(`[${machine.name}] Error processing shift ${shiftId}:`, error.message);
         }
         
-        console.log(`🔍 [${machine.name}] === END SHIFT CHECK ===\n`);
+        console.log(`[${machine.name}] === END SHIFT CHECK ===\n`);
     }
 
     // ========================================
@@ -92,12 +89,11 @@ class SaltMachineService {
             const currentMachineStatus = currentParameters.monitoringData['40001'] || 0;
 
             let initialStatus;
-            if (currentMachineStatus == 0) {
-                initialStatus = 'complete';
-            } else if (currentMachineStatus == 1) {
-                initialStatus = 'active';
-            } else {
+            if (currentMachineStatus == 2) {
                 initialStatus = 'paused';
+            }
+            else {
+                initialStatus = 'active';
             }
             const newShift = new SaltMachine({
                 shiftId,
@@ -131,8 +127,6 @@ class SaltMachineService {
             CalculationUtils.calculateAllMetrics(newShift);
             
             await newShift.save();
-            console.log(`[${machine.name}] Created new shift: ${shiftId}`);
-
             try {
                 await notificationService.notifyMainServerShiftChanged(newShift);
             } catch (notifyError) {
@@ -158,13 +152,12 @@ class SaltMachineService {
             if (currentMachineStatus == 0) {
                 newStatus = 'complete';
             }
-            else if (currentMachineStatus == 1) {
+            else if (currentMachineStatus == 1 || currentMachineStatus == 3) {
                 newStatus = 'active';
             }
-            else {
+            else if (currentMachineStatus == 2) {
                 newStatus = 'paused';
             }
-
             const currentTime = new Date();
 
             if (!shift.pauseTracking) {
@@ -175,7 +168,6 @@ class SaltMachineService {
             }
 
             if (previousStatus !== newStatus) {
-                console.log(`[${shift.shiftId}] Status transition: ${previousStatus} → ${newStatus}`);
                 shift.status = newStatus;
                 if (newStatus === 'paused' && previousStatus !== 'paused') {
                     shift.pauseTracking.pausedHistory.push({
@@ -286,60 +278,61 @@ class SaltMachineService {
             }
         }
     }
-
-    async handleBackupShifts(machine, backupData) {
-        if (!backupData || backupData.length === 0) {
-            console.log(`[${machine.name}] No backup shifts to process`);
+    // ========================================
+    // BACKUP SHIFT HANDLING
+    // ========================================
+    async handleBackupShift(machine, shiftData, shiftIndex) {
+        if (!shiftData || !shiftData.registers) {
+            console.log(`[${machine.name}] No valid data for backup shift ${shiftIndex + 1}`);
             return;
         }
 
-        console.log(`[${machine.name}] Processing ${backupData.length} backup shifts...`);
+        console.log(`[${machine.name}] Processing backup shift ${shiftIndex + 1}...`);
 
-        for (const backupShift of backupData) {
-            try {
-                const currentParameters = {
-                    monitoringData: {
-                        '40001': backupShift.registers[0] || 0,
-                        '40002': backupShift.registers[1] || 0,
-                        '40003': backupShift.registers[2] || 0,
-                        '40004': backupShift.registers[3] || 0,
-                        '40005': backupShift.registers[4] || 0,
-                        '40006': backupShift.registers[5] || 0,
-                        '40007': backupShift.registers[6] || 0,
-                        '40008': backupShift.registers[7] || 0,
-                        '40009': backupShift.registers[8] || 0,
-                        '40010': backupShift.registers[9] || 0,
-                        '40011': backupShift.registers[10] || 0
-                    },
-                    adminData: Object.fromEntries(
-                        Array.from({length: 59}, (_, i) => [
-                            (40012 + i).toString(), 
-                            backupShift.registers[i + 11] || 0
-                        ])
-                    )
-                };
+        try {
+            const currentParameters = {
+                monitoringData: {
+                    '40001': shiftData.registers[0] || 0,
+                    '40002': shiftData.registers[1] || 0,
+                    '40003': shiftData.registers[2] || 0,
+                    '40004': shiftData.registers[3] || 0,
+                    '40005': shiftData.registers[4] || 0,
+                    '40006': shiftData.registers[5] || 0,
+                    '40007': shiftData.registers[6] || 0,
+                    '40008': shiftData.registers[7] || 0,
+                    '40009': shiftData.registers[8] || 0,
+                    '40010': shiftData.registers[9] || 0,
+                    '40011': shiftData.registers[10] || 0
+                },
+                adminData: Object.fromEntries(
+                    Array.from({length: 59}, (_, i) => [
+                        (40012 + i).toString(), 
+                        shiftData.registers[i + 11] || 0
+                    ])
+                )
+            };
 
-                const shiftInfo = RegisterUtils.getShiftIdFromParameters(machine, currentParameters);
-                const { shiftId, shiftNumber } = shiftInfo;
+            const shiftInfo = RegisterUtils.getShiftIdFromParameters(machine, currentParameters);
+            const { shiftId, shiftNumber } = shiftInfo;
 
-                if (shiftNumber === 0) {
-                    continue; 
-                }
-
-                console.log(`[${machine.name}] Processing backup shift ${backupShift.index}: ${shiftId}`);
-
-                const existingShift = await SaltMachine.findOne({ shiftId: shiftId });
-                
-                if (!existingShift) {
-                    console.log(`[${machine.name}] Creating missing shift from backup: ${shiftId}`);
-                    await this.createShiftFromBackup(machine, shiftInfo, currentParameters, backupShift.index);
-                } else {
-                    console.log(`[${machine.name}] Backup shift ${shiftId} already exists, skipping`);
-                }
-
-            } catch (error) {
-                console.error(`[${machine.name}] Error processing backup shift ${backupShift.index}:`, error.message);
+            if (shiftNumber === 0) {
+                console.log(`[${machine.name}] Backup shift ${shiftIndex + 1} has no valid shift ID`);
+                return;
             }
+
+            console.log(`[${machine.name}] Backup shift ${shiftIndex + 1} ID: ${shiftId}`);
+
+            const existingShift = await SaltMachine.findOne({ shiftId: shiftId });
+            
+            if (!existingShift) {
+                console.log(`[${machine.name}] Creating missing shift from backup ${shiftIndex + 1}: ${shiftId}`);
+                await this.createShiftFromBackup(machine, shiftInfo, currentParameters, shiftIndex + 1);
+            } else {
+                console.log(`[${machine.name}] Backup shift ${shiftId} already exists, skipping`);
+            }
+
+        } catch (error) {
+            console.error(`[${machine.name}] Error processing backup shift ${shiftIndex + 1}:`, error.message);
         }
     }
 
@@ -351,8 +344,6 @@ class SaltMachineService {
             let initialStatus;
             if (machineStatus == 0) {
                 initialStatus = 'complete';
-            } else if (machineStatus == 1) {
-                initialStatus = 'incomplete'; 
             } else {
                 initialStatus = 'incomplete';
             }
@@ -374,7 +365,6 @@ class SaltMachineService {
                 backupIndex: backupIndex
             });
 
-            // Transform data như bình thường
             DataUtils.transformWorkShiftData(
                 newShift, 
                 currentParameters.monitoringData, 
@@ -390,7 +380,6 @@ class SaltMachineService {
             await newShift.save();
             console.log(`[${machine.name}] Created backup shift: ${shiftId} (backup ${backupIndex})`);
 
-            // Notify main server về shift mới từ backup
             try {
                 await notificationService.notifyMainServerShiftChanged(newShift);
             } catch (notifyError) {

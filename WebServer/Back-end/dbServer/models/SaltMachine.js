@@ -41,7 +41,7 @@ const SaltMachineSchema = new mongoose.Schema({
     // ========================================
     machineStatus: {
         type: Number,
-        enum: [0, 1, 2], // 0: Stopped, 1: Running, 2: Running but paused
+        enum: [0, 1, 2, 3], // 0: Stopped, 1: Running, 2: Running but paused, 3: Semi-automatic
         default: 0
     },
     saltTankStatus: {
