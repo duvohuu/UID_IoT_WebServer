@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const DB_SERVER_URL = process.env.DB_SERVER_URL || "http://dbserver:5001";
+const DB_SERVER_URL = process.env.DB_SERVER_URL || "http://localhost:5001";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
