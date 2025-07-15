@@ -2,8 +2,10 @@ import os from "os";
 
 export const getAllLocalIPs = () => {
     const interfaces = os.networkInterfaces();
+    const envIp = process.env.ALLOWED_IP;
     const ips = ['localhost'];
-    
+    if (envIp) ips.push(envIp);
+
     Object.keys(interfaces).forEach(interfaceName => {
         interfaces[interfaceName].forEach(iface => {
             if (iface.family === 'IPv4' && !iface.internal) {
@@ -11,7 +13,7 @@ export const getAllLocalIPs = () => {
             }
         });
     });
-    
+
     return ips;
 };
 

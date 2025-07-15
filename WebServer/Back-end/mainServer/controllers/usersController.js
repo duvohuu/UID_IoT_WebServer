@@ -4,12 +4,10 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const DB_SERVER_URL = process.env.DB_SERVER_URL || "http://localhost:5001";
+const DB_SERVER_URL = process.env.DB_SERVER_URL || "http://dbserver:5001";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// ... (giữ nguyên các validation functions) ...
 
 // Hàm kiểm tra định dạng email
 const isValidEmail = (email) => {
@@ -64,19 +62,16 @@ export const registerUser = async (req, res) => {
             return res.status(400).json({ message: validationError });
         }
 
-        // ✅ SỬA: Dùng internal API
         const response = await axios.get(`${DB_SERVER_URL}/db/internal/users/email/${email}`);
         if (response.status === 200) {
             return res.status(400).json({ message: "Email đã tồn tại" });
         }
 
-        // ✅ SỬA: Dùng internal API
         const newUser = await axios.post(`${DB_SERVER_URL}/db/internal/users`, { username, email, password });
         res.status(201).json({ message: "Đăng ký thành công" });
     } catch (err) {
         if (err.response && err.response.status === 404) {
             try {
-                // ✅ SỬA: Dùng internal API
                 await axios.post(`${DB_SERVER_URL}/db/internal/users`, { username, email, password });
                 res.status(201).json({ message: "Đăng ký thành công" });
             } catch (createErr) {
@@ -98,7 +93,6 @@ export const loginUser = async (req, res) => {
         }
 
         console.log("Đang đăng nhập:", email);
-        // ✅ SỬA: Dùng internal API
         const response = await axios.get(`${DB_SERVER_URL}/db/internal/users/email/${email}`);
         const user = response.data;
 
@@ -152,7 +146,6 @@ export const verifyToken = async (req, res) => {
             }
 
             try {
-                // ✅ SỬA: Cần thêm route này vào dbServer
                 const response = await axios.get(`${DB_SERVER_URL}/db/internal/users/${decoded.id}`);
                 const user = response.data;
                 
@@ -175,13 +168,11 @@ export const verifyToken = async (req, res) => {
     }
 };
 
-// ... (giữ nguyên updateAvatar, changePassword với internal APIs) ...
 
 export const updateAvatar = async (req, res) => {
     try {
         const userId = req.user.id;
         console.log("User ID:", userId);
-        // ✅ SỬA: Cần route này
         const response = await axios.get(`${DB_SERVER_URL}/db/internal/users/${userId}`);
         const user = response.data;
 
@@ -214,7 +205,6 @@ export const updateAvatar = async (req, res) => {
         }
 
         const avatarPath = `/avatars/${req.file.filename}`;
-        // ✅ SỬA: Cần route này
         await axios.put(`${DB_SERVER_URL}/db/internal/users/${userId}`, { avatar: avatarPath });
         console.log("Cập nhật avatar trong database:", avatarPath);
 
@@ -245,7 +235,6 @@ export const changePassword = async (req, res) => {
         }
 
         const userId = req.user.id;
-        // ✅ SỬA: Cần route này
         const response = await axios.get(`${DB_SERVER_URL}/db/internal/users/${userId}`);
         const user = response.data;
 
@@ -254,7 +243,6 @@ export const changePassword = async (req, res) => {
             return res.status(401).json({ message: "Mật khẩu cũ không chính xác" });
         }
 
-        // ✅ SỬA: Cần route này
         await axios.put(`${DB_SERVER_URL}/db/internal/users/${userId}`, { password: newPassword });
 
         res.json({ message: "Đổi mật khẩu thành công" });

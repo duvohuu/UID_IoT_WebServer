@@ -81,7 +81,7 @@ const SettingPage = ({ mode, setMode }) => {
                                 mx: 'auto' 
                             }}
                         >
-                            Tùy chỉnh trải nghiệm sử dụng theo sở thích của bạn
+                            Tùy chỉnh trải nghiệm sử dụng theo sở thích của bạn.
                         </Typography>
                     </Box>
                 </Fade>

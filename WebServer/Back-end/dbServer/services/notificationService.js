@@ -3,7 +3,7 @@ import SaltMachine from "../models/SaltMachine.js";
 
 class NotificationService {
     constructor() {
-        this.mainServerUrl = process.env.MAIN_SERVER_URL || "http://localhost:5000";
+        this.mainServerUrl = process.env.MAIN_SERVER_URL || "http://mainserver:5000";
     }
 
     async notifyMainServer(machine) {

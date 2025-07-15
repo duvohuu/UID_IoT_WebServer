@@ -13,9 +13,13 @@ export const loggingMiddleware = (req, res, next) => {
 export const ipWhitelistMiddleware = (req, res, next) => {
     const allowedIPs = ['127.0.0.1', '::1', 'localhost'];
     const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
-    
-    // Allow localhost and internal network
-    if (allowedIPs.some(ip => clientIP.includes(ip)) || clientIP.includes('192.168.')) {
+
+    // Allow localhost, internal network, and Docker bridge network (172.x.x.x)
+    if (
+        allowedIPs.some(ip => clientIP.includes(ip)) ||
+        clientIP.includes('192.168.') ||
+        clientIP.includes('172.')
+    ) {
         next();
     } else {
         // console.log(`🚫 Blocked internal API access from: ${clientIP}`);

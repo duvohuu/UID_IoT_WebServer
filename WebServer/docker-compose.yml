@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  dbserver:
+    build:
+      context: ./Back-end/dbServer
+      dockerfile: Dockerfile
+    container_name: dbserver
+    env_file:
+      - ./Back-end/.env
+    ports:
+      - "5001:5001"
+    networks:
+      - salt-machine-network
+    volumes:
+      - ./Back-end/dbServer:/app
+      - /app/node_modules
+
+  mainserver:
+    build:
+      context: ./Back-end/mainServer
+      dockerfile: Dockerfile
+    container_name: mainserver
+    env_file:
+      - ./Back-end/.env
+    ports:
+      - "5000:5000"
+    depends_on:
+      - dbserver
+    networks:
+      - salt-machine-network
+    volumes:
+      - ./Back-end/mainServer:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./Front-end
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - mainserver
+    networks:
+      - salt-machine-network
+    volumes:
+      - ./Front-end:/app
+      - /app/node_modules
+
+networks:
+  salt-machine-network:
+    driver: bridge
