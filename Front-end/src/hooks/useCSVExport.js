@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { MONITORING_DATA_CONFIG, ADMIN_DATA_CONFIG } from '../config/machineDataConfig';
+import { MONITORING_DATA_CONFIG, ADMIN_DATA_CONFIG } from '../config/saltMachineConfig';
 
 export const useCSVExport = () => {
     const [isExporting, setIsExporting] = useState(false);

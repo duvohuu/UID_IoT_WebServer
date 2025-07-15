@@ -14,7 +14,7 @@ import {
     Close as CloseIcon,
     Download as DownloadIcon 
 } from '@mui/icons-material';
-import { MONITORING_DATA_CONFIG, ADMIN_DATA_CONFIG } from '../../config/machineDataConfig';
+import { MONITORING_DATA_CONFIG, ADMIN_DATA_CONFIG } from '../../config/saltMachineConfig';
 
 const SaltMachineDataDisplay = ({ 
     selectedShiftData, 

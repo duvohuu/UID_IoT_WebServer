@@ -1,5 +1,3 @@
-// Front-end/src/config/machineDataConfig.js
-
 import {
     PlayArrow as RunningIcon,
     Stop as StoppedIcon,
