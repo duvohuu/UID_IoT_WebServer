@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getWorkShiftsByMachine } from '../api/saltMachineAPI';
+import { getWorkShiftsBySaltMachine } from '../api/saltMachineAPI';
+import { getWorkShiftsByPowderMachine } from '../api/powderMachineAPI';
 
-export const useWorkShifts = (machineId) => {
+export const useWorkShifts = (machineId, machineType) => {
     const [workShifts, setWorkShifts] = useState([]);
     const [shiftsLoading, setShiftsLoading] = useState(false);
     const [shiftFilter, setShiftFilter] = useState('all');
@@ -10,6 +11,17 @@ export const useWorkShifts = (machineId) => {
     const [userHasSelectedShift, setUserHasSelectedShift] = useState(false);
     const [isFirstLoad, setIsFirstLoad] = useState(true);
     const [userHasClearedSelection, setUserHasClearedSelection] = useState(false); 
+
+    const getWorkShiftsByMachine = useCallback(
+        (machineId, params) => {
+            if (machineType === 'Powder Filling Machine') {
+                return getWorkShiftsByPowderMachine(machineId, params);
+            } else {
+                return getWorkShiftsBySaltMachine(machineId, params);
+            }
+        },
+        [machineType]
+    );
 
     const autoSelectDefaultShift = useCallback((shifts) => {
         if (!shifts || shifts.length === 0) {
@@ -80,7 +92,7 @@ export const useWorkShifts = (machineId) => {
         } finally {
             setShiftsLoading(false);
         }
-    }, []);
+    }, [getWorkShiftsByMachine]);
 
     const handleShiftClick = useCallback((shift) => {
         console.log('👤 User manually selected shift:', shift.shiftId);

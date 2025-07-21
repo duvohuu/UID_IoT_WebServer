@@ -1,10 +1,10 @@
-import SaltMachine from "../models/SaltMachine.js";
+import PowderMachine from "../models/PowderMachine.js";
 import { notificationService } from "./notificationService.js";
 import { RegisterUtils } from '../utils/registerUtils.js';
 import { CalculationUtils } from '../utils/calculationUtils.js';
-import { SaltMachineDataUtils } from '../utils/saltMachineDataUtils.js';
+import { PowderMachineDataUtils } from '../utils/powderMachineDataUtils.js';
 
-class SaltMachineService {
+class PowderMachineService {
     constructor() {
         this.lastShiftsId = new Map();
         this.lastMachinesStatus = new Map();
@@ -64,7 +64,7 @@ class SaltMachineService {
         await this.checkForShiftChange(machine, shiftId);
 
         try {
-            const existingShift = await SaltMachine.findOne({ shiftId: shiftId });
+            const existingShift = await PowderMachine.findOne({ shiftId: shiftId });
             
             if (existingShift) {
                 console.log(`[${machine.name}] SHIFT EXISTS - Updating: ${shiftId}`);
@@ -86,8 +86,9 @@ class SaltMachineService {
     // ========================================
     async createNewShiftFromData(machine, shiftId, machineNumber, shiftNumber, currentParameters) {
         try {
-            const currentMachineStatus = currentParameters.monitoringData['40001'] || 0;
-
+            const statusReg = currentParameters.monitoringData['40001'] || 0;
+            const currentMachineStatus = statusReg & 0xF;
+            
             let initialStatus;
             if (currentMachineStatus == 2) {
                 initialStatus = 'paused';
@@ -95,11 +96,11 @@ class SaltMachineService {
             else {
                 initialStatus = 'active';
             }
-            const newShift = new SaltMachine({
+            const newShift = new PowderMachine({
                 shiftId,
                 machineId: machine.machineId,
                 machineName: machine.name,
-                machineType: 'Salt Filling Machine',
+                machineType: 'Powder Filling Machine',
                 userId: machine.userId,
                 machineNumber,
                 shiftNumber,
@@ -115,7 +116,7 @@ class SaltMachineService {
                 console.log(`[${shiftId}] New shift created in PAUSED state - tracking pause from creation`);
             }
 
-            SaltMachineDataUtils.transformWorkShiftData(
+            PowderMachineDataUtils.transformWorkShiftData(
                 newShift,
                 currentParameters.monitoringData,
                 currentParameters.adminData
@@ -146,7 +147,8 @@ class SaltMachineService {
     // ========================================
     async updateExistingShift(shift, currentParameters) {
         try {
-            const currentMachineStatus = currentParameters.monitoringData['40001'] || 0;
+            const statusReg = currentParameters.monitoringData['40001'] || 0;
+            const currentMachineStatus = statusReg & 0xF;
             const previousStatus = shift.status;
 
             let newStatus;
@@ -212,7 +214,7 @@ class SaltMachineService {
             }, 0);
 
             shift.pauseTracking.totalPausedMinutes = totalPausedMinutes;
-            SaltMachineDataUtils.transformWorkShiftData(
+            PowderMachineDataUtils.transformWorkShiftData(
                 shift,
                 currentParameters.monitoringData,
                 currentParameters.adminData
@@ -246,7 +248,7 @@ class SaltMachineService {
         try {            
             const lastShiftId = this.lastShiftsId.get(machine.machineId);            
             if (lastShiftId && lastShiftId !== currentShiftId) {                
-                const previousShift = await SaltMachine.findOne({ shiftId: lastShiftId, status: 'active' });
+                const previousShift = await PowderMachine.findOne({ shiftId: lastShiftId, status: 'active' });
                 
                 if (previousShift) {
                     const previousShiftStatus = previousShift.machineStatus;
@@ -323,7 +325,7 @@ class SaltMachineService {
 
             console.log(`[${machine.name}] Backup shift ${shiftIndex + 1} ID: ${shiftId}`);
 
-            const existingShift = await SaltMachine.findOne({ shiftId: shiftId });
+            const existingShift = await PowderMachine.findOne({ shiftId: shiftId });
             
             if (!existingShift) {
                 console.log(`[${machine.name}] Creating missing shift from backup ${shiftIndex + 1}: ${shiftId}`);
@@ -340,7 +342,8 @@ class SaltMachineService {
     async createShiftFromBackup(machine, shiftInfo, currentParameters, backupIndex) {
         try {
             const { shiftId, shiftNumber, machineNumber } = shiftInfo;
-            const machineStatus = currentParameters.monitoringData['40001'] || 0;
+            const statusReg = currentParameters.monitoringData['40001'] || 0;
+            const machineStatus = statusReg & 0xF;
 
             let initialStatus;
             if (machineStatus == 0) {
@@ -349,11 +352,11 @@ class SaltMachineService {
                 initialStatus = 'incomplete';
             }
 
-            const newShift = new SaltMachine({
+            const newShift = new PowderMachine({
                 shiftId,
                 machineId: machine.machineId,
                 machineName: machine.name,
-                machineType: 'Salt Filling Machine',
+                machineType: 'Powder Filling Machine',
                 userId: machine.userId,
                 machineNumber,
                 shiftNumber,
@@ -367,7 +370,7 @@ class SaltMachineService {
                 backupIndex: backupIndex
             });
 
-            SaltMachineDataUtils.transformWorkShiftData(
+            PowderMachineDataUtils.transformWorkShiftData(
                 newShift,
                 currentParameters.monitoringData,
                 currentParameters.adminData
@@ -397,4 +400,4 @@ class SaltMachineService {
     }
 }
 
-export const saltMachineService = new SaltMachineService();
+export const powderMachineService = new PowderMachineService();

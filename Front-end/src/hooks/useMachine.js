@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getMachineByIp } from '../api/machineAPI';
 
-export const useSaltMachine = (ip) => {
+export const useMachine = (ip) => {
     const [machine, setMachine] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -16,10 +16,10 @@ export const useSaltMachine = (ip) => {
                 if (result.success) {
                     setMachine(result.data);
                     setError(null);
-                    console.log(`✅ Machine loaded:`, result.data.name);
+                    console.log(`Machine loaded:`, result.data.name);
                 } else {
                     setError(result.message);
-                    console.error(`❌ Failed to load machine:`, result.message);
+                    console.error(`Failed to load machine:`, result.message);
                 }
             } catch (err) {
                 setError('Lỗi khi tải thông tin máy');

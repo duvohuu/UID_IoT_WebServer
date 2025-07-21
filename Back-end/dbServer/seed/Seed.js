@@ -72,7 +72,6 @@ const machine = await Machine.create({
     },
     uptime: 0,
     totalOperationTime: 0,
-    errorCount: 0
 });
 
 console.log(`Created machine: ${machine.name} (${machine.ip})`);

@@ -15,31 +15,12 @@ const MACHINE_TEMPLATE = {
     slaveId: 1,
     status: 'offline',
     isConnected: false,
-    parameters: {
-        monitoringData: {
-            '40001': 0, '40002': 0, '40003': 0, '40004': 0,
-            '40005': 0, '40006': 0, '40007': 0
-        },
-        adminData: {
-            '40008': 0, '40009': 0, '40010': 0, '40011': 0,
-            '40012': 0, '40013': 0, '40014': 0, '40015': 0,
-            '40016': 0, '40017': 0, '40018': 0, '40019': 0,
-            '40020': 0, '40021': 0, '40022': 0, '40023': 0,
-            '40024': 0, '40025': 0, '40026': 0, '40027': 0,
-            '40028': 0, '40029': 0, '40030': 0, '40031': 0,
-            '40032': 0, '40033': 0, '40034': 0, '40035': 0,
-            '40036': 0
-        }
-    },
     uptime: 0,
-    totalOperationTime: 0,
-    errorCount: 0
 };
 
 // =====================================================
-// 🔧 CẤU HÌNH THÊM MÁY CHO USER
+// CẤU HÌNH THÊM MÁY CHO USER
 // =====================================================
-
 const CONFIG = {
     // Email của user cần thêm máy
     userEmails: [
@@ -48,12 +29,12 @@ const CONFIG = {
     
     // Thông tin máy mới
     machine: {
-        machineId: 'MACHINE_003',           
-        name: 'Máy Test 2',      
-        ip: '192.168.1.15',    
+        machineId: 'MACHINE_002',           
+        name: 'Máy bột test',      
+        ip: '127.0.0.1',    
         port: 502,            
         location: 'UID Lab',      
-        type: 'Test Machine'
+        type: 'Powder Filling Machine'
     }
 };
 

@@ -8,11 +8,11 @@ import { useWorkShifts } from '../hooks/useWorkShifts';
 import { useCSVExport } from '../hooks/useCSVExport';
 import MachineHeader from '../components/machine/MachineHeader';
 import MachineBasicInfo from '../components/machine/MachineBasicInfo';
-import SaltMachineDataDisplay from '../components/saltMachine/SaltMachineDataDisplay';
-import SaltMachinePanel from '../components/saltMachine/SaltMachinePanel';
+import PowderMachineDataDisplay from '../components/powderMachine/PowderMachineDataDisplay';
+import PowderMachinePanel from '../components/powderMachine/PowderMachinePanel';
 import io from 'socket.io-client';
 
-const SaltMachinePage = ({ user }) => {
+const PowderMachinePage = ({ user }) => {
     const { ip } = useParams();
     const navigate = useNavigate();
     const [socket, setSocket] = useState(null);
@@ -154,9 +154,9 @@ const SaltMachinePage = ({ user }) => {
             
             <Grid container spacing={3}>
                 {/* Left Column */}
-                <Grid size={{ xs: 12, md: 4 }}>
+                <Grid size={{ xs: 3.8, md: 3.8 }}>
                     <MachineBasicInfo machine={machine} />
-                    <SaltMachinePanel
+                    <PowderMachinePanel
                         machine={machine}
                         workShifts={workShifts}
                         selectedShiftData={selectedShiftData}
@@ -177,8 +177,8 @@ const SaltMachinePage = ({ user }) => {
                 </Grid>
                 
                 {/* Right Column */}
-                <Grid size={{ xs: 12, md: 8 }}>
-                    <SaltMachineDataDisplay
+                <Grid size={{ xs: 8.2, md: 8.2 }}>
+                    <PowderMachineDataDisplay
                         machine={machine}
                         selectedShiftData={selectedShiftData}
                         user={user}
@@ -199,4 +199,4 @@ const SaltMachinePage = ({ user }) => {
     );
 };
 
-export default SaltMachinePage;
+export default PowderMachinePage;

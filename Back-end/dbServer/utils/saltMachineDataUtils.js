@@ -1,6 +1,6 @@
 import { RegisterUtils } from './registerUtils.js';
 
-export class DataUtils {
+export class SaltMachineDataUtils {
     static transformWorkShiftData(shift, monitoringData, adminData) {
         // Update monitoring data (40001-40008)
         shift.machineStatus = monitoringData['40001'] || 0;
@@ -10,7 +10,7 @@ export class DataUtils {
         shift.totalBottlesFilled = monitoringData['40007'] || 0;
         shift.activeLinesCount = monitoringData['40008'] || 0;
         
-        // Calculate total weight from registers 40005+40006
+        // Calculate total weight from registers 40005+40006    
         const weightLow = monitoringData['40005'] || 0;
         const weightHigh = monitoringData['40006'] || 0;
         shift.totalWeightFilled = RegisterUtils.combine16BitToFloat32(weightLow, weightHigh) || 0;

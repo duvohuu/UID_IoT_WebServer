@@ -1,6 +1,5 @@
 import {
     PlayArrow as RunningIcon,
-    Stop as StoppedIcon,
     Water as TankIcon,
     Grain as SaltIcon,
     Scale as WeightIcon,
@@ -12,12 +11,10 @@ import {
     LinearScale as LoadcellIcon,
     Error as ErrorIcon,
     Engineering as EngineeringIcon
-
 } from '@mui/icons-material';
 
 // MONITORING DATA - Hiển thị cho tất cả user (từ WorkShift fields)
 export const MONITORING_DATA_CONFIG = {
-    // Trạng thái máy từ processed fields
     machineStatus: {
         title: 'Trạng thái hoạt động máy',
         icon: RunningIcon,
@@ -29,8 +26,8 @@ export const MONITORING_DATA_CONFIG = {
             3: { label: 'Bán tự động', color: 'info' }
         }
     },
-    saltTankStatus: {
-        title: 'Trạng thái bồn cấp muối',
+    powderTank1Status: {
+        title: 'Trạng thái bồn cấp 1',
         icon: TankIcon,
         type: 'status',
         values: {
@@ -38,45 +35,59 @@ export const MONITORING_DATA_CONFIG = {
             1: { label: 'Đã đầy', color: 'success' }
         }
     },
-    saltType: {
-        title: 'Loại muối đang chiết',
+    powderTank2Status: {
+        title: 'Trạng thái bồn cấp 2',
+        icon: TankIcon,
+        type: 'status',
+        values: {
+            0: { label: 'Chưa đầy', color: 'warning' },
+            1: { label: 'Đã đầy', color: 'success' }
+        }
+    },
+    powderTank3Status: {
+        title: 'Trạng thái bồn cấp 3',
+        icon: TankIcon,
+        type: 'status',
+        values: {
+            0: { label: 'Chưa đầy', color: 'warning' },
+            1: { label: 'Đã đầy', color: 'success' }
+        }
+    },
+    powderTank4Status: {
+        title: 'Trạng thái bồn cấp 4',
+        icon: TankIcon,
+        type: 'status',
+        values: {
+            0: { label: 'Chưa đầy', color: 'warning' },
+            1: { label: 'Đã đầy', color: 'success' }
+        }
+    },
+    powderType: {
+        title: 'Loại bột đang chiết',
         icon: SaltIcon,
         type: 'status',
         values: {
-            0: { label: 'Muối hạt', color: 'info' },
-            1: { label: 'Muối mịn', color: 'primary' }
+            0: { label: 'Cả 2 loại bột', color: 'info' },
+            1: { label: 'Bột hành', color: 'primary' },
+            2: { label: 'Bột tỏi', color: 'secondary' }
         }
     },
-    targetWeight: {
-        title: 'Khối lượng mục tiêu',
-        icon: TargetIcon,
-        type: 'interger',
-        unit: 'Kg',
-        range: '0 - 1500'
-    },
-    totalWeightFilled: {
-        title: 'Tổng khối lượng đã chiết',
-        icon: WeightIcon,
-        type: 'float',
-        unit: 'kg',
-        range: '0 - 99999.99'
-    },
-    totalBottlesFilled: {
-        title: 'Tổng số chai đã chiết',
-        icon: BottleIcon,
-        type: 'interger',
-        unit: 'chai',
-        range: '0 - 65535'
-    },
-    activeLinesCount: {
-        title: 'Số line hoạt động',
+    lineAStatus: {
+        title: 'Trạng thái Line A',
         icon: AnalogIcon,
         type: 'status',
         values: {
-            0: { label: 'Cả 2 line đều dừng', color: 'error' },
-            1: { label: 'Chỉ Line A', color: 'warning' },
-            2: { label: 'Chỉ Line B', color: 'warning' },
-            3: { label: 'Cả 2 line đều hoạt động', color: 'success' }
+            0: { label: 'Line A dừng', color: 'error' },
+            1: { label: 'Line A hoạt động', color: 'success' }
+        }
+    },
+    lineBStatus: {
+        title: 'Trạng thái Line B',
+        icon: AnalogIcon,
+        type: 'status',
+        values: {
+            0: { label: 'Line B dừng', color: 'error' },
+            1: { label: 'Line B hoạt động', color: 'success' }
         }
     },
     errorCode: {
@@ -91,40 +102,75 @@ export const MONITORING_DATA_CONFIG = {
             7: { label: 'Chiết rót không đúng', color: 'error' },
             9: { label: 'Bộ phận khác bị lỗi', color: 'error' }
         }
-    },   
+    },
+    targetWeight: {
+        title: 'Khối lượng mục tiêu',
+        icon: TargetIcon,
+        type: 'interger',
+        unit: 'Kg',
+        range: '0 - 1500'
+    },
+    'totalWeightFilled.onionPowderWeight': {
+        title: 'Khối lượng bột hành đã chiết',
+        icon: WeightIcon,
+        type: 'float',
+        unit: 'kg',
+        range: '0 - 99999.99'
+    },
+    'totalWeightFilled.garlicPowderWeight': {
+        title: 'Khối lượng bột tỏi đã chiết',
+        icon: WeightIcon,
+        type: 'float',
+        unit: 'kg',
+        range: '0 - 99999.99'
+    },
+    'totalBottlesFilled.onionPowderBottles': {
+        title: 'Số chai bột hành đã chiết',
+        icon: BottleIcon,
+        type: 'interger',
+        unit: 'chai',
+        range: '0 - 65535'
+    },
+    'totalBottlesFilled.garlicPowderBottles': {
+        title: 'Số chai bột tỏi đã chiết',
+        icon: BottleIcon,
+        type: 'interger',
+        unit: 'chai',
+        range: '0 - 65535'
+    },
     operatorName: {
         title: 'Tên người vận hành',
         icon: EngineeringIcon,
         type: 'text',
         description: 'Nhân viên phụ trách ca này'
-    },
+    }
 };
 
+// ADMIN DATA CONFIG
 export const ADMIN_DATA_CONFIG = {
-    // MOTOR CONTROL parameters (từ motorControl object)
-    'motorControl.granularSalt.highFrequency': {
-        title: 'Tần số cao - Muối hạt',
+    'motorControl.onionPowder.highFrequency': {
+        title: 'Tần số cao - Bột hành',
         icon: FrequencyIcon,
         type: 'interger',
         unit: 'Hz',
         range: '0 - 2000'
     },
-    'motorControl.granularSalt.lowFrequency': {
-        title: 'Tần số thấp - Muối hạt',
+    'motorControl.onionPowder.lowFrequency': {
+        title: 'Tần số thấp - Bột hành',
         icon: FrequencyIcon,
         type: 'interger',
         unit: 'Hz',
         range: '0 - 2000'
     },
-    'motorControl.fineSalt.highFrequency': {
-        title: 'Tần số cao - Muối mịn',
+    'motorControl.garlicPowder.highFrequency': {
+        title: 'Tần số cao - Bột tỏi',
         icon: FrequencyIcon,
         type: 'interger',
         unit: 'Hz',
         range: '0 - 2000'
     },
-    'motorControl.fineSalt.lowFrequency': {
-        title: 'Tần số thấp - Muối mịn',
+    'motorControl.garlicPowder.lowFrequency': {
+        title: 'Tần số thấp - Bột tỏi',
         icon: FrequencyIcon,
         type: 'interger',
         unit: 'Hz',
@@ -137,21 +183,20 @@ export const ADMIN_DATA_CONFIG = {
         unit: 'ms',
         range: '0 - 2000'
     },
-    'motorControl.granularSaltThreshold': {
-        title: 'Chênh lệch - Muối hạt',
+    'motorControl.onionPowderThreshold': {
+        title: 'Chênh lệch - Bột hành',
         icon: TuneIcon,
         type: 'interger',
         unit: 'g',
         range: '0 - 100'
     },
-    'motorControl.fineSaltThreshold': {
-        title: 'Chênh lệch - Muối mịn',
+    'motorControl.garlicPowderThreshold': {
+        title: 'Chênh lệch - Bột tỏi',
         icon: TuneIcon,
         type: 'interger',
         unit: 'g',
         range: '0 - 100'
     },
-
     loadcell1: {
         title: 'Loadcell 1',
         icon: LoadcellIcon,
@@ -175,10 +220,10 @@ export const ADMIN_DATA_CONFIG = {
         icon: LoadcellIcon,
         type: 'loadcell_single',
         description: 'Cấu hình gain và offset loadcell số 4'
-    },
+    }
 };
 
-// ELPER: Get field title by key (for debugging)
+// HELPER: Get field title by key (for debugging)
 export const getFieldTitle = (key, isAdmin = false) => {
     const config = isAdmin ? ADMIN_DATA_CONFIG : MONITORING_DATA_CONFIG;
     return config[key]?.title || `Unknown field: ${key}`;
@@ -200,21 +245,21 @@ export const STATUS_VALUES = {
     MACHINE_STATUS: {
         0: { label: 'Máy đang dừng', color: 'warning' },
         1: { label: 'Máy đang hoạt động', color: 'success' },
-        2: { label: 'Tạm dừng', color: 'info' }
+        2: { label: 'Tạm dừng', color: 'info' },
+        3: { label: 'Bán tự động', color: 'info' }
     },
-    SALT_TANK_STATUS: {
+    POWDER_TANK_STATUS: {
         0: { label: 'Chưa đầy', color: 'warning' },
         1: { label: 'Đã đầy', color: 'success' }
     },
-    SALT_TYPE: {
-        0: { label: 'Muối hạt', color: 'info' },
-        1: { label: 'Muối mịn', color: 'primary' }
+    POWDER_TYPE: {
+        0: { label: 'Cả 2 loại bột', color: 'info' },
+        1: { label: 'Bột hành', color: 'primary' },
+        2: { label: 'Bột tỏi', color: 'secondary' }
     },
-    ACTIVE_LINES: {
-        0: { label: 'Cả 2 line đều dừng', color: 'error' },
-        1: { label: 'Chỉ Line A', color: 'warning' },
-        2: { label: 'Chỉ Line B', color: 'warning' },
-        3: { label: 'Cả 2 line đều hoạt động', color: 'success' }
+    LINE_STATUS: {
+        0: { label: 'Dừng', color: 'error' },
+        1: { label: 'Hoạt động', color: 'success' }
     }
 };
 

@@ -2,8 +2,10 @@ import net from "net";
 import Machine from "../models/Machine.js";
 import { MODBUS_CONFIG, NETWORK_CONFIG } from "../config/modbus.js";
 import { saltMachineService } from "./saltMachineService.js";
+import { powderMachineService } from "./powderMachineService.js";
 import { notificationService } from "./notificationService.js";
 import SaltMachine from "../models/SaltMachine.js";
+import PowderMachine from "../models/PowderMachine.js";
 
 class ModbusService {
     constructor() {
@@ -57,7 +59,6 @@ class ModbusService {
         try {
             console.log('Starting scan cycle for all machines...');
             const allMachines = await Machine.find({});
-            
             if (allMachines.length === 0) {
                 console.log('No machines found to scan');
                 return;
@@ -67,14 +68,10 @@ class ModbusService {
             for (let i = 0; i < allMachines.length; i++) {
                 const machine = allMachines[i];
                 const wasOnline = machine.isConnected;
-                
                 console.log(`[${i+1}/${allMachines.length}] Scanning ${machine.name} (${machine.ip}) - Current: ${machine.status}`);
-                
-                await this.readMachineData(machine);
-                
+                await this.readMachineData(machine);                
                 const updatedMachine = await Machine.findById(machine._id);
                 const isNowOnline = updatedMachine.isConnected;
-
                 if (wasOnline && !isNowOnline) {
                     this.logMachine(machine, `Connection loss detected - handling shift update`);
                     await this.handleConnectionLoss(machine);
@@ -87,7 +84,6 @@ class ModbusService {
             
             const onlineCount = await Machine.countDocuments({ isConnected: true });
             const offlineCount = allMachines.length - onlineCount;
-            
             console.log(`Scan cycle completed: ${onlineCount} online, ${offlineCount} offline`);
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             
@@ -159,47 +155,45 @@ class ModbusService {
                     client.connect(MODBUS_CONFIG.port, machine.ip, () => connectResolve());
                     client.once('error', (err) => connectReject(err));
                 });
-                
                 // Đọc 70 thanh ghi đầu tiên (40001-40070)
                 const mainRegistersResult = await this.readModbusRegisters(machine, 0, 70, { 
                     useExistingClient: client 
                 });
-                
                 if (!mainRegistersResult || isResolved) {
                     if (!isResolved) {
                         await completeWithError('Failed to read main registers', 'Failed to read main registers');
                     }
                     return;
                 }
-                
                 // Thêm độ trễ nhỏ giữa các lần đọc
                 await new Promise(r => setTimeout(r, 100));
-                
                 // Đọc riêng thanh ghi 40100 để tránh xung đột
                 const backupRegisterResult = await this.readModbusRegisters(machine, 99, 1, {
                     returnSingleValue: true
                 });
-                
                 if (backupRegisterResult === null && !isResolved) {
                     this.logMachine(machine, `Warning: can't read the 40100 register privately`, 'warn');
                 }
-                
+
                 const allRegisters = mainRegistersResult.registers;
-                // Sử dụng giá trị từ lần đọc trực tiếp nếu có, nếu không thì sử dụng giá trị mặc định
                 const backupRegister = backupRegisterResult !== null ? backupRegisterResult : 0;
-                
                 this.logMachine(machine, `Register 40100: ${backupRegister} (${backupRegister.toString(2).padStart(16, '0')})`);
 
                 try {
                     this.logMachine(machine, `Processing current shift...`);
-                    await saltMachineService.handleTracking(machine, allRegisters);
-                    
+                    if (machine.type === 'Salt Filling Machine') {
+                        await saltMachineService.handleTracking(machine, allRegisters);
+                    }
+                    else if (machine.type === 'Powder Filling Machine') {
+                        await powderMachineService.handleTracking(machine, allRegisters);
+                    }
+
                     this.logMachine(machine, `Processing backup shifts...`);
                     await this.processBackupShifts(machine, null, backupRegister);
 
-                    this.logMachine(machine, `saltMachineService completed`);
+                    this.logMachine(machine, `MachineService completed`);
                 } catch (shiftError) {
-                    this.logMachine(machine, `saltMachineService error: ${shiftError.message}`, 'error');
+                    this.logMachine(machine, `MachineService error: ${shiftError.message}`, 'error');
                 }
 
                 const parameters = {
@@ -348,7 +342,11 @@ class ModbusService {
             if (machine) {
                 if (!updateData.isConnected && machine.isConnected) {
                     this.logMachine(machine, `Detected connection loss - Notifying work shift service`);
-                    await saltMachineService.handleConnectionLoss(machine);
+                    if (machine.type === 'Salt Filling Machine') {
+                        await saltMachineService.handleConnectionLoss(machine);
+                    } else if (machine.type === 'Powder Filling Machine') {
+                        await powderMachineService.handleConnectionLoss(machine);
+                    }
                 }
                 
                 await notificationService.notifyMainServer(machine);
@@ -357,30 +355,32 @@ class ModbusService {
             console.error('Error updating machine status:', error.message);
         }
     }
-
     // ========================================
     // HANDLE CONNECTION LOSS
     // ========================================
     async handleConnectionLoss(machine) {
-        try {            
-            let lastMachineStatus = saltMachineService.lastMachinesStatus.get(machine.machineId);
+        try {
+            const isSalt = machine.type === 'Salt Filling Machine';
+            const service = isSalt ? saltMachineService : powderMachineService;
+            const Model = isSalt ? SaltMachine : PowderMachine;
+
+            let lastMachineStatus = service.lastMachinesStatus.get(machine.machineId);
             if (lastMachineStatus === undefined) {
-                lastMachineStatus = saltMachineService.lastMachinesStatus.get(machine._id.toString());
+                lastMachineStatus = service.lastMachinesStatus.get(machine._id.toString());
             }
-            
-            const activeOrPausedShifts = await SaltMachine.find({ 
-                machineId: machine.machineId, 
+
+            const activeOrPausedShifts = await Model.find({
+                machineId: machine.machineId,
                 status: { $in: ['active', 'paused'] }
             }).sort({ createdAt: -1 });
-            
+
             if (activeOrPausedShifts.length === 0) {
                 this.logMachine(machine, `No active or paused shifts found to update`);
                 return;
             }
-            
+
             for (const shift of activeOrPausedShifts) {
                 let newStatus;
-                
                 if (lastMachineStatus === 1) {
                     newStatus = 'incomplete';
                     this.logMachine(machine, `Shift ${shift.shiftId}: Machine was RUNNING before disconnect -> INCOMPLETE`);
@@ -392,21 +392,16 @@ class ModbusService {
                     newStatus = 'incomplete';
                     this.logMachine(machine, `Shift ${shift.shiftId}: No machine status available -> INCOMPLETE (default)`);
                 }
-                
                 shift.status = newStatus;
-                
                 await shift.save();
                 this.logMachine(machine, `Updated shift ${shift.shiftId} status to: ${newStatus}`);
-                
                 try {
                     await notificationService.notifyMainServerShiftChanged(shift);
                 } catch (notifyError) {
                     this.logMachine(machine, `Failed to notify shift change: ${notifyError.message}`, 'error');
                 }
             }
-            
             this.logMachine(machine, `Completed updating ${activeOrPausedShifts.length} active/paused shifts`);
-                        
         } catch (error) {
             this.logMachine(machine, `Error handling connection loss: ${error.message}`, 'error');
         }
@@ -434,7 +429,6 @@ class ModbusService {
         
         try {
             this.logMachine(machine, `Register 40100 value: ${backupRegister.toString(2).padStart(16, '0')}`);
-        
             const lastBackupRegister = machine.parameters?.backupStatus?.['40100'];
             if (lastBackupRegister > 0 && backupRegister === 0) {
                 this.logMachine(machine, `PHÁT HIỆN LỖI: Thanh ghi 40100 đột ngột từ ${lastBackupRegister.toString(2).padStart(16, '0')} thành 0`, 'warn');
@@ -442,18 +436,11 @@ class ModbusService {
             
             if (backupRegister === 0) {
                 this.logMachine(machine, `CẢNH BÁO: Phát hiện thanh ghi 40100 = 0, tiến hành xác minh trực tiếp`, 'warn');
-                
-                // Đọc trực tiếp để xác minh
                 try {
-                    const verifiedRegister = await this.readModbusRegisters(machine, 99, 1, {
-                        returnSingleValue: true
-                    });
-                    
-                    if (verifiedRegister !== null && verifiedRegister !== 0) {
+                    const verifiedRegister = await this.readModbusRegisters(machine, 99, 1, {returnSingleValue: true});
+                    if (verifiedRegister) {
                         this.logMachine(machine, `Đã xác minh thanh ghi 40100 = ${verifiedRegister.toString(2).padStart(16, '0')}`);
                         backupRegister = verifiedRegister;
-                        
-                        // Lưu lại vấn đề để phân tích
                         this.logMachine(machine, `LỖI ĐỌC: Đã sửa giá trị thanh ghi từ 0 thành ${verifiedRegister}`);
                     }
                 } catch (err) {
@@ -462,7 +449,6 @@ class ModbusService {
             }
             
             const shiftStatusBits = backupRegister & 0x3FF; 
-            
             let updatedbackupRegister = backupRegister;
             let hasUnreadShifts = false;
             
@@ -488,16 +474,16 @@ class ModbusService {
                                 index: shiftIndex + 1,
                                 registers: shiftData.registers.slice(0, 70)
                             };
-                            
-                            await saltMachineService.handleBackupShift(machine, relevantData, shiftIndex);
+                            const service = machine.type === 'Salt Filling Machine'
+                                ? saltMachineService
+                                : powderMachineService;
+                            await service.handleBackupShift(machine, relevantData, shiftIndex);
                             this.logMachine(machine, `Marked shift ${shiftIndex + 1} as read`);
                         } else {
                             this.logMachine(machine, `Failed to read backup shift ${shiftIndex + 1} - marking as read anyway`, 'warn');
                         }
-                        
-                        // Đánh dấu ca đã đọc
-                        const bitMask = 1 << bitPosition;
-                        updatedbackupRegister |= bitMask;
+            
+                        updatedbackupRegister |= (1 << bitPosition);
                         this.logMachine(machine, `Updated register 40100: ${updatedbackupRegister.toString(2).padStart(16, '0')}`);
                     } catch (error) {
                         this.logMachine(machine, `Error reading backup shift ${shiftIndex + 1}: ${error.message}`, 'error');
@@ -508,17 +494,14 @@ class ModbusService {
             // Ghi lại giá trị thanh ghi đã cập nhật
             if (hasUnreadShifts && updatedbackupRegister !== backupRegister) {
                 this.logMachine(machine, `Đang ghi lại thanh ghi 40100 = ${updatedbackupRegister.toString(2).padStart(16, '0')} vào thiết bị`);
-                
                 await this.writeModbusRegister(machine, 99, updatedbackupRegister, { 
                     useExistingClient: localClient 
                 });
-                
                 // Xác minh sau khi ghi
                 const verifiedAfterWrite = await this.readModbusRegisters(machine, 99, 1, {
                     useExistingClient: localClient,
                     returnSingleValue: true
                 });
-                
                 this.logMachine(machine, `Xác minh sau khi ghi: 40100 = ${verifiedAfterWrite !== null ? 
                     verifiedAfterWrite.toString(2).padStart(16, '0') : 'null'}`);
             }

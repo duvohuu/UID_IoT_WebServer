@@ -16,11 +16,12 @@ export const getWorkShifts = async (req, res) => {
         
         let queryParams = { page, limit };
         
+        // Role-based filtering
         if (currentUser.role !== 'admin') {
             if (machineId) {
                 queryParams.machineId = machineId;
             } else {
-                queryParams.allowedMachines = currentUser.allowedMachines; // hoặc logic phân quyền khác
+                queryParams.allowedMachines = currentUser.allowedMachines; 
             }
         }
         
@@ -28,8 +29,8 @@ export const getWorkShifts = async (req, res) => {
         if (status) queryParams.status = status;
         if (startDate) queryParams.startDate = startDate;
         if (endDate) queryParams.endDate = endDate;
-        
-        const response = await axios.get(`${DB_SERVER_URL}/db/internal/salt-machine`, {
+
+        const response = await axios.get(`${DB_SERVER_URL}/db/internal/powder-machine`, {
             params: queryParams
         });
         
@@ -55,7 +56,7 @@ export const getWorkShiftById = async (req, res) => {
         const userResponse = await axios.get(`${DB_SERVER_URL}/db/internal/users/${decoded.id}`);
         const currentUser = userResponse.data;
         
-        const response = await axios.get(`${DB_SERVER_URL}/db/internal/salt-machine/${shiftId}`);
+        const response = await axios.get(`${DB_SERVER_URL}/db/internal/powder-machine/${shiftId}`);
         const workShift = response.data;
         
         if (currentUser.role !== 'admin' && workShift.userId !== currentUser.userId) {
@@ -91,7 +92,7 @@ export const getWorkShiftStats = async (req, res) => {
             queryParams.userId = currentUser.userId;
         }
 
-        const response = await axios.get(`${DB_SERVER_URL}/db/internal/salt-machine/stats`, {
+        const response = await axios.get(`${DB_SERVER_URL}/db/internal/powder-machine/stats`, {
             params: queryParams
         });
         
@@ -121,7 +122,7 @@ export const getActiveWorkShifts = async (req, res) => {
             queryParams.userId = currentUser.userId;
         }
 
-        const response = await axios.get(`${DB_SERVER_URL}/db/internal/salt-machine/active/current`, {
+        const response = await axios.get(`${DB_SERVER_URL}/db/internal/powder-machine/active/current`, {
             params: queryParams
         });
         

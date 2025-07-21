@@ -21,8 +21,11 @@ export class CalculationUtils {
 
     //Calculate production efficiency (kg/hour)
     static calculateEfficiency(totalWeightFilled, duration) {
+        // Nếu là object (máy bột), lấy tổng các trường
+        if (typeof totalWeightFilled === 'object' && totalWeightFilled !== null) {
+            totalWeightFilled = (totalWeightFilled.onionPowderWeight || 0) + (totalWeightFilled.garlicPowderWeight || 0);
+        }
         if (!totalWeightFilled || !duration || duration <= 0) return 0;
-        
         const durationInHours = duration / 60;
         return Number((totalWeightFilled / durationInHours).toFixed(2));
     }
