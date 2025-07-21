@@ -123,7 +123,11 @@ const StatusPage = ({ user }) => {
     // Event handlers
     const handleMachineClick = (machine) => {
         console.log("Điều hướng đến chi tiết máy:", machine.name);
-        navigate(`/machine/${machine.ip}`);
+        if (machine.type === 'Powder Filling Machine') {
+            navigate(`/powder/${machine.ip}`);
+        } else {
+            navigate(`/salt/${machine.ip}`);
+        }
     };
 
     const handleMachineDelete = async (deletedMachine) => {

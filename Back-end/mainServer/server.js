@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import userRoutes from "./routes/usersRoutes.js";
 import machineRoutes from "./routes/machineRoutes.js";
 import saltMachineRoutes from "./routes/saltMachineRoutes.js";
+import powderMachineRoutes from "./routes/powderMachineRoutes.js";
 import internalRoutes from "./routes/internalRoutes.js";
 
 // Import middleware & config
@@ -47,10 +48,11 @@ app.use(express.json());
 
 app.use("/api/users", userRoutes);
 app.use("/api/machines", machineRoutes);
-app.use("/api/work-shifts", saltMachineRoutes);
+app.use("/api/salt-machine", saltMachineRoutes);
+app.use("/api/powder-machine", powderMachineRoutes);
 app.use("/api/internal", internalRoutes);
 
-// =================================================================
+// =========================================================
 // BASIC ROUTES
 // =================================================================
 

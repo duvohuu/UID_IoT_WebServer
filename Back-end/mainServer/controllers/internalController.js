@@ -6,27 +6,6 @@ export const handleMachineUpdate = (req, res) => {
     res.json({ success: true, message: "Machine update broadcasted" });
 };
 
-export const handleShiftCompleted = (req, res) => {
-    const shiftData = req.body;
-    const io = req.app.get('io');
-    
-    io.emit("SaltMachineCompleted", shiftData);
-    res.json({ success: true, message: "Shift completion broadcasted" });
-};
-
-export const handleShiftStarted = (req, res) => {
-    const shiftData = req.body;
-    const io = req.app.get('io');
-    
-    // Broadcast to Frontend via Socket.IO
-    io.emit("SaltMachineUpdate", {
-        type: 'shift_started',
-        shift: shiftData,
-        timestamp: new Date()
-    });
-    
-    res.json({ success: true, message: "Shift start broadcasted" });
-};
 
 export const handleShiftChanged = async (req, res) => {
     try {

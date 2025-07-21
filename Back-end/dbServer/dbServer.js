@@ -14,6 +14,7 @@ import { corsMiddleware, loggingMiddleware, ipWhitelistMiddleware } from "./midd
 import internalUserRoutes from "./routes/internalUserRoutes.js";
 import internalMachineRoutes from "./routes/internalMachineRoutes.js";
 import internalSaltMachineRoutes from "./routes/internalSaltMachineRoutes.js";
+import internalPowderMachineRoutes from "./routes/internalPowderMachineRoutes.js";
 
 // Import services
 import { modbusService } from "./services/modbusService.js";
@@ -43,7 +44,8 @@ app.use('/db/internal/*', ipWhitelistMiddleware);
 // =================================================================
 app.use('/db/internal/users', internalUserRoutes);
 app.use('/db/internal/machines', internalMachineRoutes);
-app.use('/db/internal/work-shifts', internalSaltMachineRoutes);
+app.use('/db/internal/salt-machine', internalSaltMachineRoutes);
+app.use('/db/internal/powder-machine', internalPowderMachineRoutes);
 
 // Health check
 app.get('/', (req, res) => {

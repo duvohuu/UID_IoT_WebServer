@@ -5,7 +5,7 @@ axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // Lấy danh sách ca làm việc theo máy
-export const getWorkShiftsBySaltMachine = async (machineId, params = {}) => {
+export const getWorkShiftsByPowderMachine = async (machineId, params = {}) => {
     try {
         const queryParams = new URLSearchParams({
             machineId,
@@ -16,7 +16,7 @@ export const getWorkShiftsBySaltMachine = async (machineId, params = {}) => {
             ...params
         });
 
-        const response = await axios.get(`${API_URL}/api/salt-machine?${queryParams}`, {
+        const response = await axios.get(`${API_URL}/api/powder-machine?${queryParams}`, {
             withCredentials: true
         });
         return { success: true, data: response.data };

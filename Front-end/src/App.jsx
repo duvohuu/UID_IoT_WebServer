@@ -7,6 +7,7 @@ import Sidebar from './components/layout/Sidebar';
 import StatusPage from './pages/StatusPage';
 import SettingPage from './pages/SettingPage';
 import SaltMachinePage from './pages/SaltMachinePage';
+import PowderMachinePage from './pages/PowderMachinePage';
 import { SnackbarProvider } from './context/SnackbarContext';
 import axios from 'axios'; 
 
@@ -98,7 +99,8 @@ const App = () => {
                             <Route path="/" element={<Navigate to="/status" replace />} />
                             <Route path="/status" element={<StatusPage user={user} />} />
                             <Route path="/setting" element={<SettingPage user={user} mode={mode} setMode={setMode} />} />
-                            <Route path="/machine/:ip" element={<SaltMachinePage user={user} />} />
+                            <Route path="/salt/:ip" element={<SaltMachinePage user={user} />} />
+                            <Route path="/powder/:ip" element={<PowderMachinePage user={user} />} />
                         </Routes>
                     </Box>
                 </Box>

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const SaltMachineSchema = new mongoose.Schema({
+const PowderMachineSchema = new mongoose.Schema({
     shiftId: {
         type: String,
         required: true,
@@ -49,34 +49,71 @@ const SaltMachineSchema = new mongoose.Schema({
         enum: [0, 1, 2, 3], // 0: Stopped, 1: Running, 2: Running but paused, 3: Semi-automatic
         default: 0
     },
-    saltTankStatus: {
+    powderTankStatus: {
+        powderTank_1 : {
+            type: Number,
+            enum: [0, 1], // 0: Not full, 1: Full
+            default: 0
+        },
+        powderTank_2 : {
+            type: Number,
+            enum: [0, 1], // 0: Not full, 1: Full
+            default: 0
+        },
+        powderTank_3 : {
+            type: Number,
+            enum: [0, 1], // 0: Not full, 1: Full
+            default: 0
+        },
+        powderTank_4 : {
+            type: Number,
+            enum: [0, 1], // 0: Not full, 1: Full
+            default: 0
+        }
+    },
+    powderType: {
         type: Number,
-        enum: [0, 1], // 0: Not full, 1: Full
+        enum: [0, 1, 2], // 0: Both onion powder and garlic powder, 1: Garlic powder, 2: Onion powder
         default: 0
     },
-    saltType: {
-        type: Number,
-        enum: [0, 1], // 0: Granular salt, 1: Fine salt
-        default: 0
+    lineStatus: {
+        lineA: {
+            type: Number,
+            enum: [0, 1], // 0: Stopped, 1: Running
+            default: 0
+        },
+        lineB: {
+            type: Number,
+            enum: [0, 1], // 0: Stopped, 1: Running
+            default: 0
+        }
     },
+
     targetWeight: {
-        type: Number, // grams (40004)
+        type: Number, // grams (40002)
         default: 0
     },
     totalWeightFilled: {
-        type: Number, // kg - combined from 40005+40006
-        default: 0
+        onionPowderWeight: {
+            type: Number, // kg - combined from 40003+40004
+            default: 0
+        },
+        garlicPowderWeight: {
+            type: Number, // kg - combined from 40005+40006
+            default: 0
+        }
     },
     totalBottlesFilled: {
-        type: Number, // 40007
-        default: 0
+        onionPowderBottles: {
+            type: Number, // 40007
+            default: 0
+        },
+        garlicPowderBottles: {
+            type: Number, // 40008
+            default: 0
+        }
     },
-    activeLinesCount: {
-        type: Number,
-        enum: [0, 1, 2, 3], // 0: Both stopped, 1: Line A, 2: Line B, 3: Both active
-        default: 0
-    },
-    shiftNumber: {
+    shiftNumber: { // 40009
         type: Number,
         required: true
     },
@@ -92,25 +129,25 @@ const SaltMachineSchema = new mongoose.Schema({
     // Loadcell configurations (processed from pairs)
     loadcellConfigs: [{
         loadcellId: { type: Number, min: 1, max: 4 },
-        gain: { type: Number, default: 0 }, // Combined from Low+High registers
+        gain: { type: Number, default: 0 },  // Combined from Low+High registers
         offset: { type: Number, default: 0 } // Combined from Low+High registers
     }],
     
     // Motor control parameters
     motorControl: {
-        granularSalt: {
+        onionPowder: {
             highFrequency: { type: Number, default: 0 }, // 40030
             lowFrequency: { type: Number, default: 0 }   // 40031
         },
-        fineSalt: {
+        garlicPowder: {
             highFrequency: { type: Number, default: 0 }, // 40032
             lowFrequency: { type: Number, default: 0 }   // 40033  
         },
         accelerationTime: { type: Number, default: 0 },      // 40034
-        granularSaltThreshold: { type: Number, default: 0 }, // 40035
-        fineSaltThreshold: { type: Number, default: 0 }      // 40036
+        onionPowderThreshold: { type: Number, default: 0 },  // 40035
+        garlicPowderThreshold: { type: Number, default: 0 }  // 40036
     },
-    
+        
     // Time tracking (processed from multiple registers)
     timeTracking: {
         shiftStartTime: { type: Date },
@@ -161,16 +198,16 @@ const SaltMachineSchema = new mongoose.Schema({
 // ========================================
 // INDEXES - Performance optimization
 // ========================================
-SaltMachineSchema.index({ shiftId: 1 }, { unique: true });
-SaltMachineSchema.index({ machineId: 1, startTime: -1 });
-SaltMachineSchema.index({ status: 1 });
-SaltMachineSchema.index({ userId: 1 });
-SaltMachineSchema.index({ efficiency: -1 });
-SaltMachineSchema.index({ machineNumber: 1, shiftNumber: -1 });
-SaltMachineSchema.index({ startTime: -1 });
-SaltMachineSchema.index({ duration: -1 });
-SaltMachineSchema.index({ totalWeightFilled: -1 });
-SaltMachineSchema.index({ completionPercentage: -1 });
+PowderMachineSchema.index({ shiftId: 1 }, { unique: true });
+PowderMachineSchema.index({ machineId: 1, startTime: -1 });
+PowderMachineSchema.index({ status: 1 });
+PowderMachineSchema.index({ userId: 1 });
+PowderMachineSchema.index({ efficiency: -1 });
+PowderMachineSchema.index({ machineNumber: 1, shiftNumber: -1 });
+PowderMachineSchema.index({ startTime: -1 });
+PowderMachineSchema.index({ duration: -1 });
+PowderMachineSchema.index({ totalWeightFilled: -1 });
+PowderMachineSchema.index({ completionPercentage: -1 });
 
-const SaltMachine = mongoose.model('SaltMachine', SaltMachineSchema);
-export default SaltMachine;
+const PowderMachine = mongoose.model('PowderMachine', PowderMachineSchema);
+export default PowderMachine;

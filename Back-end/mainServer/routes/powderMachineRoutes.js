@@ -2,7 +2,7 @@ import express from "express";
 import { authenticateToken } from "../middleware/auth.js";
 import { 
     getWorkShifts, 
-} from "../controllers/saltMachineController.js";
+} from "../controllers/powderMachineController.js";
 
 const router = express.Router();
 
