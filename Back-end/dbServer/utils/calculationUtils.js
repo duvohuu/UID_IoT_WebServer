@@ -21,12 +21,33 @@ export class CalculationUtils {
 
     //Calculate production efficiency (kg/hour)
     static calculateEfficiency(totalWeightFilled, duration) {
-        // Nếu là object (máy bột), lấy tổng các trường
-        if (typeof totalWeightFilled === 'object' && totalWeightFilled !== null) {
-            totalWeightFilled = (totalWeightFilled.onionPowderWeight || 0) + (totalWeightFilled.garlicPowderWeight || 0);
+        if (!duration || duration <= 0) {
+            if (typeof totalWeightFilled === 'object' && totalWeightFilled !== null && 
+                (totalWeightFilled.hasOwnProperty('onionPowderWeight') || 
+                totalWeightFilled.hasOwnProperty('garlicPowderWeight'))) {
+                return {
+                    onionEfficiency: 0,
+                    garlicEfficiency: 0
+                };
+            }
+            return 0; // Máy muối
         }
-        if (!totalWeightFilled || !duration || duration <= 0) return 0;
         const durationInHours = duration / 60;
+
+        if (typeof totalWeightFilled === 'object' && totalWeightFilled !== null && 
+            (totalWeightFilled.hasOwnProperty('onionPowderWeight') || 
+            totalWeightFilled.hasOwnProperty('garlicPowderWeight'))) {
+            
+            const onionWeight = totalWeightFilled.onionPowderWeight || 0;
+            const garlicWeight = totalWeightFilled.garlicPowderWeight || 0;
+            
+            return {
+                onionEfficiency: Number((onionWeight / durationInHours).toFixed(2)),
+                garlicEfficiency: Number((garlicWeight / durationInHours).toFixed(2))
+            };
+        }
+
+        if (!totalWeightFilled) return 0;
         return Number((totalWeightFilled / durationInHours).toFixed(2));
     }
     

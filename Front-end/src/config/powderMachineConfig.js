@@ -10,7 +10,8 @@ import {
     Tune as TuneIcon,
     LinearScale as LoadcellIcon,
     Error as ErrorIcon,
-    Engineering as EngineeringIcon
+    Engineering as EngineeringIcon,
+    TrendingUp as EfficiencyIcon
 } from '@mui/icons-material';
 
 // MONITORING DATA - Hiển thị cho tất cả user (từ WorkShift fields)
@@ -72,7 +73,7 @@ export const MONITORING_DATA_CONFIG = {
             2: { label: 'Bột tỏi', color: 'secondary' }
         }
     },
-    lineAStatus: {
+    'lineStatus.lineA': {
         title: 'Trạng thái Line A',
         icon: AnalogIcon,
         type: 'status',
@@ -81,7 +82,7 @@ export const MONITORING_DATA_CONFIG = {
             1: { label: 'Line A hoạt động', color: 'success' }
         }
     },
-    lineBStatus: {
+    'lineStatus.lineB': {
         title: 'Trạng thái Line B',
         icon: AnalogIcon,
         type: 'status',
@@ -103,12 +104,19 @@ export const MONITORING_DATA_CONFIG = {
             9: { label: 'Bộ phận khác bị lỗi', color: 'error' }
         }
     },
-    targetWeight: {
-        title: 'Khối lượng mục tiêu',
+    'targetWeight.garlicTargetWeight': {
+        title: 'Khối lượng bột tỏi cần chiết',
         icon: TargetIcon,
         type: 'interger',
         unit: 'Kg',
-        range: '0 - 1500'
+        range: '70 - 600'
+    },
+    'targetWeight.onionTargetWeight': {
+        title: 'Khối lượng bột hành cần chiết',
+        icon: TargetIcon,
+        type: 'interger',
+        unit: 'Kg',
+        range: '70 - 600'
     },
     'totalWeightFilled.onionPowderWeight': {
         title: 'Khối lượng bột hành đã chiết',
@@ -138,6 +146,21 @@ export const MONITORING_DATA_CONFIG = {
         unit: 'chai',
         range: '0 - 65535'
     },
+    'efficiency.onionEfficiency': {
+        title: 'Hiệu suất bột hành (kg/giờ)',
+        icon: EfficiencyIcon,
+        type: 'float',
+        unit: 'kg/giờ',
+        range: '0 - 99999.99'
+    },
+    'efficiency.garlicEfficiency': {
+        title: 'Hiệu suất bột tỏi (kg/giờ)',
+        icon: EfficiencyIcon,
+        type: 'float',
+        unit: 'kg/giờ',
+        range: '0 - 99999.99'   
+    }, 
+      
     operatorName: {
         title: 'Tên người vận hành',
         icon: EngineeringIcon,

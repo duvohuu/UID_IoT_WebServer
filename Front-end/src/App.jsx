@@ -9,6 +9,7 @@ import SettingPage from './pages/SettingPage';
 import SaltMachinePage from './pages/SaltMachinePage';
 import PowderMachinePage from './pages/PowderMachinePage';
 import { SnackbarProvider } from './context/SnackbarContext';
+import { SocketProvider } from './context/SocketContext';
 import axios from 'axios'; 
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -84,27 +85,29 @@ const App = () => {
 
     return (
         <ThemeProvider theme={getTheme(mode)}>
-            <SnackbarProvider>
-                <CssBaseline />
-                <Box sx={{ display: 'flex' }}>
-                    <Sidebar open={sidebarOpen} />
-                    <Header 
-                        onToggleSidebar={handleToggleSidebar}  
-                        user={user}
-                        setUser={setUser}
-                    />
-                    <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default' }}>
-                        <Toolbar />
-                        <Routes>
-                            <Route path="/" element={<Navigate to="/status" replace />} />
-                            <Route path="/status" element={<StatusPage user={user} />} />
-                            <Route path="/setting" element={<SettingPage user={user} mode={mode} setMode={setMode} />} />
-                            <Route path="/salt/:ip" element={<SaltMachinePage user={user} />} />
-                            <Route path="/powder/:ip" element={<PowderMachinePage user={user} />} />
-                        </Routes>
+            <SocketProvider user={user}>
+                <SnackbarProvider>
+                    <CssBaseline />
+                    <Box sx={{ display: 'flex' }}>
+                        <Sidebar open={sidebarOpen} />
+                        <Header 
+                            onToggleSidebar={handleToggleSidebar}  
+                            user={user}
+                            setUser={setUser}
+                        />
+                        <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default' }}>
+                            <Toolbar />
+                            <Routes>
+                                <Route path="/" element={<Navigate to="/status" replace />} />
+                                <Route path="/status" element={<StatusPage user={user} />} />
+                                <Route path="/setting" element={<SettingPage user={user} mode={mode} setMode={setMode} />} />
+                                <Route path="/salt/:ip" element={<SaltMachinePage user={user} />} />
+                                <Route path="/powder/:ip" element={<PowderMachinePage user={user} />} />
+                            </Routes>
+                        </Box>
                     </Box>
-                </Box>
-            </SnackbarProvider>
+                </SnackbarProvider>
+            </SocketProvider>
         </ThemeProvider>
     );
 };

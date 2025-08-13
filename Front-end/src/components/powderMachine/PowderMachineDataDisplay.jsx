@@ -140,9 +140,13 @@ const PowderMachineDataDisplay = ({
         if (!displayData) {
             return (
                 <Card sx={{ 
-                    border: '2px dashed', 
-                    borderColor: 'grey.300',
-                    bgcolor: 'grey.50',
+                   border: '2px dashed', 
+                    borderColor: (theme) => theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.23)'  // Dark mode: border sáng hơn
+                        : 'grey.300',                   // Light mode: border gốc
+                    bgcolor: (theme) => theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.08)'  // Dark mode: nền tối với alpha
+                        : 'grey.50',                    // Light mode: nền sáng
                     mb: 2
                 }}>
                     <CardContent sx={{ textAlign: 'center', py: 6 }}>
@@ -270,14 +274,14 @@ const PowderMachineDataDisplay = ({
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                    <Typography variant="caption" color="text.secondary">Hiệu suất ca làm việc</Typography>
+                                    <Typography variant="caption" color="text.secondary">Thời gian làm việc</Typography>
                                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                         {(() => {
-                                            const eff = displayData.shiftInfo?.efficiency;
+                                            const eff = displayData.shiftInfo?.duration;
                                             if (eff === null || eff === undefined) {
                                                 return 'Chưa có dữ liệu';
                                             }
-                                            return `${Number(eff).toFixed(2)} kg/h`;
+                                            return `${(Number(eff)/60).toFixed(2)} giờ`;
                                         })()}
                                     </Typography>
                                 </Grid>

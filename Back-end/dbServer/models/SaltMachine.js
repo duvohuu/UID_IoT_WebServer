@@ -136,14 +136,11 @@ const SaltMachineSchema = new mongoose.Schema({
         default: 0
     },
 
-    pauseTracking: {
-        totalPausedMinutes: { type: Number, default: 0 },
-        pausedHistory: [{
-            startTime: { type: Date, default: null },
-            endTime: { type: Date, default: null },
-            durationMinutes: { type: Number, default: 0 }
-        }]
-    },
+    pausedHistory: [{
+        startTime: { type: Date, default: null },
+        endTime: { type: Date, default: null },
+        durationMinutes: { type: Number, default: 0 }
+    }],
 
     // ========================================
     // BACKUP FIELDS
