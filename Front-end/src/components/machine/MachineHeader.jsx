@@ -19,7 +19,7 @@ const MachineHeader = ({ machine }) => {
                 {machine.name}
             </Typography>
             <Chip 
-                label={machine.isConnected ? 'Đang kết nối' : 'Mất kết nối'} 
+                label={machine.isConnected ? 'Đã kết nối' : 'Mất kết nối'} 
                 color={machine.isConnected ? 'success' : 'error'} 
             />
         </Box>

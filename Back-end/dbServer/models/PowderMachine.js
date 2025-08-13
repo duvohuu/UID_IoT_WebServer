@@ -88,11 +88,18 @@ const PowderMachineSchema = new mongoose.Schema({
             default: 0
         }
     },
+    targetWeight:{
+        garlicTargetWeight: {
+            type: Number, // grams (40002)
+            default: 0
+        },
 
-    targetWeight: {
-        type: Number, // grams (40002)
-        default: 0
+        onionTargetWeight: {
+            type: Number, // grams (40028)
+            default: 0
+        },
     },
+
     totalWeightFilled: {
         onionPowderWeight: {
             type: Number, // kg - combined from 40003+40004
@@ -165,22 +172,25 @@ const PowderMachineSchema = new mongoose.Schema({
     // CALCULATED METRICS
     // ========================================
     efficiency: {
-        type: Number, // kg/hour
-        default: 0
+        onionEfficiency: {
+            type: Number, 
+            default: 0
+        },
+        garlicEfficiency: {
+            type: Number, 
+            default: 0
+        },
     },
     fillRate: {
         type: Number, // bottles/hour
         default: 0
     },
 
-    pauseTracking: {
-        totalPausedMinutes: { type: Number, default: 0 },
-        pausedHistory: [{
-            startTime: { type: Date, default: null },
-            endTime: { type: Date, default: null },
-            durationMinutes: { type: Number, default: 0 }
-        }]
-    },
+    pausedHistory: [{
+        startTime: { type: Date, default: null },
+        endTime: { type: Date, default: null },
+        durationMinutes: { type: Number, default: 0 }
+    }],
 
     // ========================================
     // BACKUP FIELDS

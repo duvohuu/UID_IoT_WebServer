@@ -185,10 +185,14 @@ const StatusMachinesGrid = ({ machines, loading, user, onMachineClick, onMachine
                     
                     <Box sx={{ 
                         p: 2, 
-                        backgroundColor: 'grey.50', 
+                        backgroundColor: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.05)'  
+                        : 'grey.50',                   
                         borderRadius: 2,
                         border: '1px solid',
-                        borderColor: 'grey.200'
+                        borderColor: theme.palette.mode === 'dark'
+                            ? 'rgba(255, 255, 255, 0.12)'  
+                            : 'grey.200'  
                     }}>
                         <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                             {deleteDialog.machine?.name}

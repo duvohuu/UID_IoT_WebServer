@@ -141,8 +141,12 @@ const SaltMachineDataDisplay = ({
             return (
                 <Card sx={{ 
                     border: '2px dashed', 
-                    borderColor: 'grey.300',
-                    bgcolor: 'grey.50',
+                    borderColor: (theme) => theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.23)'  // Dark mode: border sáng hơn
+                        : 'grey.300',                   // Light mode: border gốc
+                    bgcolor: (theme) => theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.08)'  // Dark mode: nền tối với alpha
+                        : 'grey.50',                    // Light mode: nền sáng
                     mb: 2
                 }}>
                     <CardContent sx={{ textAlign: 'center', py: 6 }}>

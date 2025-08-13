@@ -3,7 +3,7 @@ import Machine from "../models/Machine.js";
 import { MODBUS_CONFIG, NETWORK_CONFIG } from "../config/modbus.js";
 import { saltMachineService } from "./saltMachineService.js";
 import { powderMachineService } from "./powderMachineService.js";
-import { notificationService } from "./notificationService.js";
+import { mainServerSyncService } from "./mainServerSyncService.js";
 import SaltMachine from "../models/SaltMachine.js";
 import PowderMachine from "../models/PowderMachine.js";
 
@@ -191,7 +191,6 @@ class ModbusService {
                     this.logMachine(machine, `Processing backup shifts...`);
                     await this.processBackupShifts(machine, null, backupRegister);
 
-                    this.logMachine(machine, `MachineService completed`);
                 } catch (shiftError) {
                     this.logMachine(machine, `MachineService error: ${shiftError.message}`, 'error');
                 }
@@ -349,7 +348,7 @@ class ModbusService {
                     }
                 }
                 
-                await notificationService.notifyMainServer(machine);
+                await mainServerSyncService.notifyMainServer(machine);
             }
         } catch (error) {
             console.error('Error updating machine status:', error.message);
@@ -396,7 +395,7 @@ class ModbusService {
                 await shift.save();
                 this.logMachine(machine, `Updated shift ${shift.shiftId} status to: ${newStatus}`);
                 try {
-                    await notificationService.notifyMainServerShiftChanged(shift);
+                    await mainServerSyncService.notifyMainServerShiftChanged(shift);
                 } catch (notifyError) {
                     this.logMachine(machine, `Failed to notify shift change: ${notifyError.message}`, 'error');
                 }
@@ -428,7 +427,6 @@ class ModbusService {
         }
         
         try {
-            this.logMachine(machine, `Register 40100 value: ${backupRegister.toString(2).padStart(16, '0')}`);
             const lastBackupRegister = machine.parameters?.backupStatus?.['40100'];
             if (lastBackupRegister > 0 && backupRegister === 0) {
                 this.logMachine(machine, `PHÁT HIỆN LỖI: Thanh ghi 40100 đột ngột từ ${lastBackupRegister.toString(2).padStart(16, '0')} thành 0`, 'warn');

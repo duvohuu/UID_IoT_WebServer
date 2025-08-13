@@ -8,6 +8,7 @@ import {
     LanguageOutlined as LanguageIcon
 } from '@mui/icons-material';
 import ThemeToggle from '../components/layout/ThemeToggle';
+import NotificationToggle from '../components/layout/NotificationToggle'; 
 
 export const getSettingsData = (mode, handleToggle) => [
     {
@@ -20,12 +21,8 @@ export const getSettingsData = (mode, handleToggle) => [
         icon: React.createElement(NotificationIcon),
         title: 'Thông báo',
         description: 'Cài đặt thông báo và cảnh báo hệ thống',
-        component: React.createElement(FormControlLabel, {
-            control: React.createElement(Switch, { defaultChecked: true }),
-            label: 'Nhận thông báo'
-        })
+        component: React.createElement(NotificationToggle)
     },
-  
     {
         icon: React.createElement(LanguageIcon),
         title: 'Ngôn ngữ',

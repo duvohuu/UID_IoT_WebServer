@@ -15,6 +15,7 @@ import internalUserRoutes from "./routes/internalUserRoutes.js";
 import internalMachineRoutes from "./routes/internalMachineRoutes.js";
 import internalSaltMachineRoutes from "./routes/internalSaltMachineRoutes.js";
 import internalPowderMachineRoutes from "./routes/internalPowderMachineRoutes.js";
+import internalNotificationRoutes from "./routes/internalNotificationRoutes.js";
 
 // Import services
 import { modbusService } from "./services/modbusService.js";
@@ -46,6 +47,7 @@ app.use('/db/internal/users', internalUserRoutes);
 app.use('/db/internal/machines', internalMachineRoutes);
 app.use('/db/internal/salt-machine', internalSaltMachineRoutes);
 app.use('/db/internal/powder-machine', internalPowderMachineRoutes);
+app.use('/db/internal/notifications', internalNotificationRoutes);
 
 // Health check
 app.get('/', (req, res) => {
@@ -67,7 +69,8 @@ const PORT = process.env.DB_PORT || 5001;
 server.listen(PORT, () => {
     console.log(`✅ DB Server running on port ${PORT}`);
     console.log(`🔄 Modbus polling active`);
-    
+    console.log(`📢 Notification system active`);
+
     // Start Modbus polling system
     modbusService.startPolling();
 });

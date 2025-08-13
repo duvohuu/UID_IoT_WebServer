@@ -10,11 +10,14 @@ import userRoutes from "./routes/usersRoutes.js";
 import machineRoutes from "./routes/machineRoutes.js";
 import saltMachineRoutes from "./routes/saltMachineRoutes.js";
 import powderMachineRoutes from "./routes/powderMachineRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 import internalRoutes from "./routes/internalRoutes.js";
 
 // Import middleware & config
 import { generateAllowedOrigins, getAllLocalIPs, corsMiddleware } from "./middleware/cors.js";
 import { initializeSocket } from "./config/socket.js";
+import { clearOldNotifications } from "./controllers/internalController.js";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,6 +53,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/machines", machineRoutes);
 app.use("/api/salt-machine", saltMachineRoutes);
 app.use("/api/powder-machine", powderMachineRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/internal", internalRoutes);
 
 // =========================================================
@@ -64,6 +68,14 @@ app.get("/", (req, res) => {
     `);
 });
 
+// =================================================================
+// SCHEDULED TASKS
+// =================================================================
+
+// Clear old notifications every hour
+setInterval(() => {
+    clearOldNotifications();
+}, 24 * 60 * 60 * 1000); // 24 hour
 // =================================================================
 // SERVER START
 // =================================================================

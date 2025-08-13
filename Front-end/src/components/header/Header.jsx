@@ -16,6 +16,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { styled, alpha } from "@mui/material/styles";
 import LoginDialog from "../header/LoginDialog";
 import AvatarMenu from "../header/AvatarMenu";
+import NotificationBell from "../header/NotificationBell"
 import useAuth from "../../hooks/useAuth";
 import io from "socket.io-client";
 
@@ -275,6 +276,8 @@ const Header = ({ onToggleSidebar, user, setUser }) => {
                                 />
                             </Search>
                         </Fade>
+
+                         <NotificationBell user={user} />
 
                         <Fade in={true} timeout={1400}>
                             <Box>

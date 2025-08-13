@@ -1,5 +1,5 @@
 import SaltMachine from "../models/SaltMachine.js";
-import { notificationService } from "./notificationService.js";
+import { mainServerSyncService } from "./mainServerSyncService.js";
 import { RegisterUtils } from '../utils/registerUtils.js';
 import { CalculationUtils } from '../utils/calculationUtils.js';
 import { SaltMachineDataUtils } from '../utils/saltMachineDataUtils.js';
@@ -104,11 +104,11 @@ class SaltMachineService {
                 machineNumber,
                 shiftNumber,
                 status: initialStatus,
-                pauseTracking: {
-                    totalPausedMinutes: 0,
-                    currentPausedStart: initialStatus === 'paused' ? new Date() : null,
-                    pausedHistory: []
-                }
+                pausedHistory: initialStatus === 'paused' ? [{
+                    startTime: new Date(),
+                    endTime: null,
+                    durationMinutes: 0
+                }] : []
             });
 
             if (initialStatus === 'paused') {
@@ -129,7 +129,7 @@ class SaltMachineService {
             
             await newShift.save();
             try {
-                await notificationService.notifyMainServerShiftChanged(newShift);
+                await mainServerSyncService.notifyMainServerShiftChanged(newShift);
             } catch (notifyError) {
                 console.error(`[${machine.name}] Failed to notify new shift:`, notifyError.message);
             }
@@ -159,28 +159,30 @@ class SaltMachineService {
             else if (currentMachineStatus == 2) {
                 newStatus = 'paused';
             }
+            
             const currentTime = new Date();
 
-            if (!shift.pauseTracking) {
-                shift.pauseTracking = {
-                    totalPausedMinutes: 0,
-                    pausedHistory: []
-                }
+            if (!shift.pausedHistory) {
+                shift.pausedHistory = [];
             }
 
             if (previousStatus !== newStatus) {
                 shift.status = newStatus;
+                console.log(`[${shift.shiftId}] Status changed: ${previousStatus} → ${newStatus}`);
+                
+                // Bắt đầu pause
                 if (newStatus === 'paused' && previousStatus !== 'paused') {
-                    shift.pauseTracking.pausedHistory.push({
+                    shift.pausedHistory.push({
                         startTime: currentTime,
                         endTime: null, 
                         durationMinutes: 0
                     });
-                    console.log(`[${shift.shiftId}] Started pause at: ${currentTime.toLocaleString('vi-VN')}`);
+                    console.log(`[${shift.shiftId}] ⏸️ Started pause at: ${currentTime.toLocaleString('vi-VN')}`);
                 }
                 
+                // Kết thúc pause
                 if (previousStatus === 'paused' && newStatus !== 'paused') {
-                    const lastPause = shift.pauseTracking.pausedHistory[shift.pauseTracking.pausedHistory.length - 1];
+                    const lastPause = shift.pausedHistory[shift.pausedHistory.length - 1];
                     
                     if (lastPause && !lastPause.endTime) {
                         const pauseDurationMs = currentTime - lastPause.startTime;
@@ -189,29 +191,30 @@ class SaltMachineService {
                         lastPause.endTime = currentTime;
                         lastPause.durationMinutes = pauseDurationMinutes;
                         
-                        shift.pauseTracking.totalPausedMinutes += pauseDurationMinutes;
-                        
-                        console.log(`[${shift.shiftId}] Ended pause. Duration: ${pauseDurationMinutes} minutes. Total paused: ${shift.pauseTracking.totalPausedMinutes} minutes`);
+                        console.log(`[${shift.shiftId}] ▶️ Ended pause. Duration: ${pauseDurationMinutes.toFixed(2)} minutes`);
                     }
                 }
             }
 
             if (newStatus === 'paused') {
-                const currentPause = shift.pauseTracking.pausedHistory[shift.pauseTracking.pausedHistory.length - 1];
+                const currentPause = shift.pausedHistory[shift.pausedHistory.length - 1];
                 if (currentPause && !currentPause.endTime) {
                     const currentPauseDurationMs = currentTime - currentPause.startTime;
-                    const currentPauseDurationMinutes = Math.floor(currentPauseDurationMs / (1000 * 60));
+                    const currentPauseDurationMinutes = currentPauseDurationMs / (1000 * 60);
                     currentPause.durationMinutes = currentPauseDurationMinutes;
                     
-                    console.log(`[${shift.shiftId}] Currently paused for: ${currentPauseDurationMinutes} minutes`);
+                    console.log(`[${shift.shiftId}] ⏸️ Currently paused for: ${currentPauseDurationMinutes.toFixed(2)} minutes`);
                 }
             }
 
-            const totalPausedMinutes = shift.pauseTracking.pausedHistory.reduce((total, pause) => {
-                return total + (pause.durationMinutes || 0);
-            }, 0);
+            const completedPauses = shift.pausedHistory
+                .filter(pause => pause.endTime !== null)
+                .reduce((total, pause) => total + (pause.durationMinutes || 0), 0);
+                
+            const currentPauseTime = shift.pausedHistory
+                .filter(pause => pause.endTime === null)
+                .reduce((total, pause) => total + (pause.durationMinutes || 0), 0);
 
-            shift.pauseTracking.totalPausedMinutes = totalPausedMinutes;
             SaltMachineDataUtils.transformWorkShiftData(
                 shift,
                 currentParameters.monitoringData,
@@ -219,16 +222,16 @@ class SaltMachineService {
             );
 
             if (shift.timeTracking) {
-                shift.timeTracking.shiftPausedTime = shift.pauseTracking.totalPausedMinutes || 0;
+                shift.timeTracking.shiftPausedTime = completedPauses + currentPauseTime;
             }
             
             CalculationUtils.calculateAllMetrics(shift);
             
             await shift.save();
-            console.log(`Updated shift: ${shift.shiftId}`);
+            console.log(`[${shift.shiftId}] ✅ Updated - Paused time: ${shift.timeTracking?.shiftPausedTime?.toFixed(2)} min`);
 
             try {
-                await notificationService.notifyMainServerShiftChanged(shift);
+                await mainServerSyncService.notifyMainServerShiftChanged(shift);
             } catch (notifyError) {
                 console.error(`[${shift.shiftId}] Failed to notify shift change:`, notifyError.message);
             }
@@ -260,7 +263,7 @@ class SaltMachineService {
                     await previousShift.save();
 
                     try {
-                        await notificationService.notifyMainServerShiftChanged(previousShift);
+                        await mainServerSyncService.notifyMainServerShiftChanged(previousShift);
                     } catch (notifyError) {
                         console.error(`[${machine.name}] Failed to notify shift change:`, notifyError.message);
                     }
@@ -358,11 +361,7 @@ class SaltMachineService {
                 machineNumber,
                 shiftNumber,
                 status: initialStatus,
-                pauseTracking: {
-                    totalPausedMinutes: 0,
-                    currentPausedStart: null,
-                    pausedHistory: []
-                },
+                pausedHistory: [],
                 isFromBackup: true, 
                 backupIndex: backupIndex
             });
@@ -383,7 +382,7 @@ class SaltMachineService {
             console.log(`[${machine.name}] Created backup shift: ${shiftId} (backup ${backupIndex})`);
 
             try {
-                await notificationService.notifyMainServerShiftChanged(newShift);
+                await mainServerSyncService.notifyMainServerShiftChanged(newShift);
             } catch (notifyError) {
                 console.error(`[${machine.name}] Failed to notify backup shift:`, notifyError.message);
             }

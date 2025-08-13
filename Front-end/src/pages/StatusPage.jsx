@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
     Box, 
     Container, 
-    useMediaQuery 
+    useMediaQuery,
+    Typography
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
-import io from 'socket.io-client'; 
 
 // Import components
 import StatusHeader from '../components/status/StatusHeader';
@@ -16,21 +16,20 @@ import StatusMachinesGrid from '../components/status/StatusMachinesGrid';
 // Import API and hooks
 import { getMachines } from '../api/machineAPI';
 import { useSnackbar } from '../context/SnackbarContext';
+import { useSocket } from '../context/SocketContext';
+import { useAllMachinesStatusUpdates } from '../hooks/useSocketEvents';
 
 const StatusPage = ({ user }) => {
     const theme = useTheme();
     const navigate = useNavigate();
     const { showSnackbar } = useSnackbar();
+    const { isConnected } = useSocket(); 
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     
     // State management
     const [machines, setMachines] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [socket, setSocket] = useState(null);
-
-    // Socket và API URL
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
     // Helper function - Sort machines by ID
     const sortMachinesByMachineId = (machines) => {
@@ -43,8 +42,8 @@ const StatusPage = ({ user }) => {
         });
     };
 
-    // Effect - Setup socket and fetch initial data
-    useEffect(() => {
+    // Fetch machines data
+    const fetchMachines = useCallback(async () => {
         if (!user) {
             setMachines([]);
             setLoading(false);
@@ -52,73 +51,59 @@ const StatusPage = ({ user }) => {
             return;
         }
 
-        // Initialize socket connection
-        const newSocket = io(API_URL, {
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-            transports: ["websocket", "polling"],
-        });
-        setSocket(newSocket);
-
-        // Fetch initial machines data
-        const fetchMachines = async () => {
-            try {
-                setLoading(true);
-                console.log("🔄 Fetching machines from mainServer...");
-                
-                const result = await getMachines();
-                if (result.success && result.data && result.data.length > 0) {
-                    console.log("Machines loaded from API:", result.data.length);
-                    
-                    const sortedMachines = sortMachinesByMachineId(result.data);
-                    setMachines(sortedMachines);
-                    setError(null);
-                } else {
-                    console.warn("Không có dữ liệu từ API");
-                    setMachines([]);
-                    setError(user.role === 'admin' 
-                        ? "Chưa có máy nào trong hệ thống" 
-                        : "Bạn chưa có máy nào - Liên hệ admin để được cấp máy"
-                    );
-                }
-            } catch (error) {
-                console.error("Lỗi lấy danh sách máy:", error);
-                setMachines([]);
-                setError("Lỗi kết nối API - Kiểm tra kết nối server");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchMachines();
-
-        // Socket event listeners
-        newSocket.on("machineStatusUpdate", (update) => {
-            console.log('📡 Machine status update from mainServer:', update);
+        try {
+            setLoading(true);
+            console.log("🔄 Fetching machines from mainServer...");
             
-            setMachines((prevMachines) =>
-                prevMachines.map((machine) =>
-                    machine.ip === update.ip || machine.id === update.id
-                        ? {
-                            ...machine,
-                            ...update,
-                            lastUpdate: update.lastUpdate,
-                            lastHeartbeat: update.lastHeartbeat
-                        }
-                        : machine
-                )
-            );
-        });
-
-        // Cleanup function
-        return () => {
-            if (newSocket) {
-                console.log("🔌 Disconnecting from mainServer...");
-                newSocket.disconnect();
+            const result = await getMachines();
+            if (result.success && result.data && result.data.length > 0) {
+                console.log("Machines loaded from API:", result.data.length);
+                
+                const sortedMachines = sortMachinesByMachineId(result.data);
+                setMachines(sortedMachines);
+                setError(null);
+            } else {
+                console.warn("Không có dữ liệu từ API");
+                setMachines([]);
+                setError(user.role === 'admin' 
+                    ? "Chưa có máy nào trong hệ thống" 
+                    : "Bạn chưa có máy nào - Liên hệ admin để được cấp máy"
+                );
             }
-        };
-    }, [user, showSnackbar, API_URL]);
+        } catch (error) {
+            console.error("Lỗi lấy danh sách máy:", error);
+            setMachines([]);
+            setError("Lỗi kết nối API - Kiểm tra kết nối server");
+        } finally {
+            setLoading(false);
+        }
+    }, [user]);
+
+    // Handle machine status updates from socket
+    const handleMachineStatusUpdate = useCallback((update) => {
+        console.log('📡 Machine status update from mainServer:', update);
+        
+        setMachines((prevMachines) =>
+            prevMachines.map((machine) =>
+                machine.ip === update.ip || machine.id === update.id
+                    ? {
+                        ...machine,
+                        ...update,
+                        lastUpdate: update.lastUpdate,
+                        lastHeartbeat: update.lastHeartbeat
+                    }
+                    : machine
+            )
+        );
+    }, []);
+
+    // Use custom hook for socket events
+    useAllMachinesStatusUpdates(handleMachineStatusUpdate);
+
+    // Initial fetch when user logs in
+    useEffect(() => {
+        fetchMachines();
+    }, [fetchMachines]);
 
     // Event handlers
     const handleMachineClick = (machine) => {
@@ -154,6 +139,17 @@ const StatusPage = ({ user }) => {
             }}
         >
             <Container maxWidth="xl">
+                <Box sx={{ mb: 2, textAlign: 'center' }}>
+                    <Typography 
+                        variant="caption" 
+                        sx={{ 
+                            color: isConnected ? 'success.main' : 'warning.main',
+                            fontWeight: 500
+                        }}
+                    >
+                    </Typography>
+                </Box>
+
                 {/* Header Section */}
                 <StatusHeader 
                     isMobile={isMobile}

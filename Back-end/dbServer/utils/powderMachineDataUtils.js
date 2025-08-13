@@ -13,17 +13,20 @@ export class PowderMachineDataUtils {
             powderTank_4: (statusReg >> 7) & 0x1
         };
 
-        // Bit 8-11: loại bột
-        shift.powderType = (statusReg >> 8) & 0xF;
-
         // Bit 12: trạng thái line A, Bit 13: trạng thái line B
         shift.lineStatus = {
             lineA: (statusReg >> 12) & 0x1,
             lineB: (statusReg >> 13) & 0x1
         };
 
-        // 40002: Khối lượng cần chiết rót (gram)
-        shift.targetWeight = monitoringData['40002'] || 0;
+        shift.powderType = this.transformPowderType(shift.lineStatus);
+
+        // 40002: Khối lượng bột hành cần chiết rót (gram)
+        // 40028: Khối lượng bột tỏi cần chiết rót (gram)
+        shift.targetWeight = {
+            onionTargetWeight: monitoringData['40002'] || 0,
+            garlicTargetWeight: adminData['40028'] || 0
+        }
 
         // 40003-40004: Tổng khối lượng bột hành đã chiết (kg) (float32)
         shift.totalWeightFilled = {
@@ -76,6 +79,17 @@ export class PowderMachineDataUtils {
         return shift;
     }
 
+    // Transform line status to powder type
+    static transformPowderType(lineStatus) {
+        if (lineStatus.lineA && lineStatus.lineB) {
+            return 0;
+        }
+        if (lineStatus.lineA) {
+            return 1; // Onion Powder
+        }
+        return 2; // Garlic Powder
+    }
+    
     // Transform loadcell register data into structured config
     static transformLoadcellConfigs(adminData) {
         const configs = [];

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Grid, CircularProgress, Alert, Button, Typography, Box } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
@@ -6,21 +6,19 @@ import { useNavigate } from 'react-router-dom';
 import { useMachine } from '../hooks/useMachine';
 import { useWorkShifts } from '../hooks/useWorkShifts';
 import { useCSVExport } from '../hooks/useCSVExport';
+import { useSocket } from '../context/SocketContext';
+import { useMachineSocketEvents } from '../hooks/useSocketEvents';
 import MachineHeader from '../components/machine/MachineHeader';
 import MachineBasicInfo from '../components/machine/MachineBasicInfo';
 import PowderMachineDataDisplay from '../components/powderMachine/PowderMachineDataDisplay';
 import PowderMachinePanel from '../components/powderMachine/PowderMachinePanel';
-import io from 'socket.io-client';
 
 const PowderMachinePage = ({ user }) => {
     const { ip } = useParams();
     const navigate = useNavigate();
-    const [socket, setSocket] = useState(null);
     const [selectedShifts, setSelectedShifts] = useState([]);
     const [machineRealtime, setMachineRealtime] = useState(null);
     const { exportMultipleShifts, isExporting } = useCSVExport();
-
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
     
     const {
         machine,
@@ -41,55 +39,32 @@ const PowderMachinePage = ({ user }) => {
         handleClearSelectedShift
     } = useWorkShifts(machine?.machineId, machine?.type);
 
+    // Socket event callbacks
+    const handleMachineUpdate = useCallback((update) => {
+        console.log(`[${machine?.name}] Machine status updated:`, update);
+        setMachineRealtime(prevMachine => ({
+            ...prevMachine,
+            ...update,
+            lastUpdate: update.lastUpdate,
+            lastHeartbeat: update.lastHeartbeat
+        }));
+    }, [machine]);
+
+    const handleShiftChange = useCallback((data) => {
+        console.log(`[${machine?.name}] Shift status changed:`, data);
+        handleRefreshShifts();
+    }, [machine, handleRefreshShifts]);
+
+    const { isConnected } = useMachineSocketEvents(machine, {
+        onMachineUpdate: handleMachineUpdate,
+        onShiftChange: handleShiftChange
+    });
+
     useEffect(() => {
         if (machine) {
             setMachineRealtime(machine);
         }
     }, [machine]);
-
-    useEffect(() => {
-        if (!machine || !user) return;
-
-        // Initialize socket connection
-        const newSocket = io(API_URL, {
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-            transports: ["websocket", "polling"],
-        });
-        setSocket(newSocket);
-        // Update machine status in real-time
-        newSocket.on("machineStatusUpdate", (update) => {
-            if (update.ip === machine.ip || update.machineId === machine.machineId) {
-                console.log(`[${machine.name}] Machine status updated:`, update);
-                setMachineRealtime(prevMachine => ({
-                    ...prevMachine,
-                    ...update,
-                    lastUpdate: update.lastUpdate,
-                    lastHeartbeat: update.lastHeartbeat
-                }));
-            }
-        });
-        // Update work shifts real-time
-        newSocket.on("shiftStatusChanged", (data) => {
-            if (data.machineId === machine.machineId) {
-                console.log(`[${machine.name}] Shift status changed:`, data);
-                handleRefreshShifts();
-                
-            }
-        });
-
-        // Cleanup function
-        return () => {
-            if (newSocket) {
-                newSocket.off("machineStatusUpdate");
-                newSocket.off("shiftStatusChanged");
-                newSocket.disconnect();
-            }
-        };
-    }, [machine, user, handleRefreshShifts, API_URL]);
-    
-    
 
     // Multi-select handlers
     const handleShiftSelect = (shift, checked) => {
@@ -116,7 +91,6 @@ const PowderMachinePage = ({ user }) => {
         await exportMultipleShifts(selectedShifts, user, machine);
         setSelectedShifts([]);
     };
-
 
     useEffect(() => {
         console.log('🔍 Selected shifts updated:', selectedShifts.length);
@@ -152,9 +126,20 @@ const PowderMachinePage = ({ user }) => {
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
             <MachineHeader machine={machineRealtime || machine} />
             
+            <Box sx={{ mb: 2, textAlign: 'center' }}>
+                <Typography 
+                    variant="caption" 
+                    sx={{ 
+                        color: isConnected ? 'success.main' : 'warning.main',
+                        fontWeight: 500
+                    }}
+                >
+                </Typography>
+            </Box>
+            
             <Grid container spacing={3}>
                 {/* Left Column */}
-                <Grid size={{ xs: 3.8, md: 3.8 }}>
+                <Grid size={{ xs: 3.8, md: 3.64 }}>
                     <MachineBasicInfo machine={machine} />
                     <PowderMachinePanel
                         machine={machine}
@@ -177,7 +162,7 @@ const PowderMachinePage = ({ user }) => {
                 </Grid>
                 
                 {/* Right Column */}
-                <Grid size={{ xs: 8.2, md: 8.2 }}>
+                <Grid size={{ xs: 8.2, md: 8.36 }}>
                     <PowderMachineDataDisplay
                         machine={machine}
                         selectedShiftData={selectedShiftData}
@@ -192,7 +177,8 @@ const PowderMachinePage = ({ user }) => {
             {/* Last Update Info */}
             <Box sx={{ mt: 3, textAlign: 'center' }}>
                 <Typography variant="caption" color="text.secondary">
-                    Cập nhật lần cuối: {(machineRealtime || machine)?.lastUpdate ? new Date(machine.lastUpdate).toLocaleString('vi-VN') : 'Chưa có dữ liệu'}
+                    Cập nhật lần cuối: {(machineRealtime || machine)?.lastUpdate ? 
+                        new Date((machineRealtime || machine).lastUpdate).toLocaleString('vi-VN') : 'Chưa có dữ liệu'}
                 </Typography>
             </Box>
         </Container>
