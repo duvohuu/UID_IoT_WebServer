@@ -1,7 +1,7 @@
 import Machine from "../models/Machine.js";
 import User from "../models/User.js";
 import SaltMachine from "../models/SaltMachine.js"; 
-
+import PowderMachine from "../models/PowderMachine.js"; 
 
 export const getAllMachines = async (req, res) => {
     try {
@@ -74,43 +74,59 @@ export const deleteMachine = async (req, res) => {
         }
         
         const machineId = machineToDelete.machineId;
-        console.log(`\n🔄 Processing machine: ${machineId}`);
+        const machineType = machineToDelete.type; 
+        console.log(`\n🔄 Processing machine: ${machineId} (${machineType})`);
         
-        console.log(`   🗑️ Permanently deleting ALL work shifts for ${machineId}...`);
-        const deletedShifts = await SaltMachine.deleteMany({ machineId: machineId });
-        console.log(`   ✅ PERMANENTLY DELETED ${deletedShifts.deletedCount} work shifts`);
+        let deletedShifts = { deletedCount: 0 };
         
-        const remainingShifts = await SaltMachine.find({ machineId: machineId });
-        if (remainingShifts.length > 0) {
-            console.log(`   ⚠️  WARNING: Still found ${remainingShifts.length} shifts. Force deleting...`);
-            await SaltMachine.deleteMany({ machineId: machineId });
-            console.log(`   🔧 Force deleted remaining shifts`);
+        if (machineType === 'Salt Filling Machine') {
+            console.log(`   🧂 Deleting Salt Machine shifts for ${machineId}...`);
+            deletedShifts = await SaltMachine.deleteMany({ machineId: machineId });
+            
+            const remainingShifts = await SaltMachine.find({ machineId: machineId });
+            if (remainingShifts.length > 0) {
+                console.log(`   ⚠️  WARNING: Still found ${remainingShifts.length} salt shifts. Force deleting...`);
+                await SaltMachine.deleteMany({ machineId: machineId });
+            }
+        } 
+        else if (machineType === 'Powder Filling Machine') {
+            console.log(`   🥄 Deleting Powder Machine shifts for ${machineId}...`);
+            deletedShifts = await PowderMachine.deleteMany({ machineId: machineId });
+            
+            const remainingShifts = await PowderMachine.find({ machineId: machineId });
+            if (remainingShifts.length > 0) {
+                console.log(`   ⚠️  WARNING: Still found ${remainingShifts.length} powder shifts. Force deleting...`);
+                await PowderMachine.deleteMany({ machineId: machineId });
+            }
         }
+        else {
+            console.log(`   ⚠️  Unknown machine type: ${machineType}. Skipping shift deletion.`);
+        }
+        
+        console.log(`   ✅ PERMANENTLY DELETED ${deletedShifts.deletedCount} work shifts`);
         
         const deletedMachine = await Machine.findByIdAndDelete(req.params.id);
         if (deletedMachine) {
             console.log(`   ✅ PERMANENTLY DELETED machine: ${deletedMachine.machineId} - ${deletedMachine.name}`);
         }
         
-        const finalCheck = await SaltMachine.find({ machineId: machineId });
-        console.log(`   🔍 Final verification: ${finalCheck.length} remaining shifts (should be 0)`);
-        
         res.json({ 
-            message: 'Machine and ALL related work shifts permanently deleted',
+            message: `Machine and ALL related ${machineType} work shifts permanently deleted`,
             deletedMachine: {
                 id: machineToDelete._id,
                 machineId: machineToDelete.machineId,
                 name: machineToDelete.name,
+                type: machineToDelete.type, 
                 ip: machineToDelete.ip,
                 userId: machineToDelete.userId
             },
             deletedShiftsCount: deletedShifts.deletedCount,
+            machineType: machineType, 
             status: 'PERMANENTLY_DELETED'
         });
         
     } catch (error) {
         console.error('❌ DB SERVER: DELETE MACHINE ERROR:', error.message);
-        console.error('❌ DB SERVER: Stack trace:', error.stack);
         res.status(500).json({ 
             message: 'Error deleting machine and work shifts', 
             error: error.message 
